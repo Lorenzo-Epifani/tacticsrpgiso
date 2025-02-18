@@ -1,0 +1,251 @@
+[gd_scene load_steps=13 format=4 uid="uid://bxvglqyw8cfte"]
+
+[ext_resource type="Script" path="res://scenes/battle/base_fight.gd" id="1_lsbwt"]
+[ext_resource type="Texture2D" uid="uid://c5ds0rluj1yso" path="res://assets/ground/base green.png" id="1_o1eh3"]
+[ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
+[ext_resource type="Script" path="res://scenes/uis/camera/cursor_node.gd" id="3_qowfu"]
+[ext_resource type="Texture2D" uid="uid://dxibw27knfm5v" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
+[ext_resource type="PackedScene" uid="uid://4m7qdl2ojld1" path="res://scenes/uis/battle/battle_ui.tscn" id="8_skbsw"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sachx"]
+texture = ExtResource("1_o1eh3")
+margins = Vector2i(16, 16)
+separation = Vector2i(16, 16)
+texture_region_size = Vector2i(32, 32)
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+5:2/0 = 0
+0:4/0 = 0
+1:4/0 = 0
+3:4/0 = 0
+4:4/0 = 0
+5:4/0 = 0
+0:5/0 = 0
+1:5/0 = 0
+2:5/0 = 0
+3:5/0 = 0
+4:5/0 = 0
+5:5/0 = 0
+1:6/0 = 0
+2:6/0 = 0
+2:4/0 = 0
+3:0/0 = 0
+2:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+5:3/0 = 0
+4:3/0 = 0
+3:3/0 = 0
+2:3/0 = 0
+1:3/0 = 0
+0:3/0 = 0
+0:0/0 = 0
+1:0/0 = 0
+0:1/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_n1nc8"]
+tile_shape = 1
+tile_layout = 5
+tile_offset_axis = 1
+tile_size = Vector2i(32, 16)
+sources/0 = SubResource("TileSetAtlasSource_sachx")
+
+[sub_resource type="GDScript" id="GDScript_8ck61"]
+script/source = "extends Node
+class_name DataGrid
+
+@onready var units_container = $UnitsContainer
+@onready var terrain = $Terrain
+@onready var static_container = $StaticsContainer
+
+# Dizionario principale: raccoglie dati da units, terrain e static
+var grid_data: Dictionary = {}
+
+
+func update_grid_data():
+	pass
+
+func get_at(grid_position: Vector2i):
+	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null })
+	print(content)
+	return content
+	
+func _ready():
+	pass
+	
+func _process(delta):
+	update_grid_data()
+	pass
+	
+
+# 🔹 Costruisce il dizionario leggendo i dati dai 3 nodi figli
+func build_grid_data():
+	# Recupera tutte le coordinate uniche dai 3 dizionari
+	var all_keys = units_container.data_dict.keys() + terrain.data_dict.keys() + static_container.data_dict.keys()
+	all_keys = all_keys.duplicate()  # Rimuove riferimenti duplicati
+	all_keys.sort()  # Opzionale: Ordina per una visualizzazione più chiara
+
+	for key in all_keys:
+		grid_data[key] = {
+			\"unit\": units_container.data_dict.get(key, null),  # Personaggio o null
+			\"terrain\": terrain.data_dict.get(key, null),  # Default: altezza 0, terreno neutrale
+			\"statics\": static_container.data_dict.get(key, null)  # Oggetto statico o null
+		}
+
+	print(\"📌 GridData Generata:\", JSON.stringify(grid_data, \"\\t\"))
+
+# 🔹 Metodo per ottenere dati da una cella specifica
+"
+
+[sub_resource type="GDScript" id="GDScript_mfn1r"]
+script/source = "extends Node
+
+var data_dict = {}
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+
+func add(unit,pos=null):
+	update_dict(unit)
+	add_child(unit)
+	
+func move(from, to):
+	pass
+	#TODO
+	
+func remove(from, to):
+	pass
+	#TODO
+	
+func update_dict(unit):
+	var grid_coord = Global.w2g(unit.node2d.global_transform.origin[0],unit.node2d.global_transform.origin[1])
+
+	data_dict[Vector2i(grid_coord[0],grid_coord[1])] = unit
+"
+
+[sub_resource type="GDScript" id="GDScript_k81hd"]
+script/source = "extends Node
+
+var data_dict = {}
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+
+func add(static_el,pos=null):
+	update_dict(static_el)
+	add_child(static_el)
+	
+func move(from, to):
+	pass
+	#TODO
+	
+func remove(from, to):
+	pass
+	#TODO
+	
+func update_dict(static_el):
+	var grid_coord = Global.w2g(static_el.global_transform.origin[0],static_el.global_transform.origin[1])
+
+	data_dict[Vector2i(grid_coord[0],grid_coord[1])] = static_el
+"
+
+[sub_resource type="GDScript" id="GDScript_nkgw7"]
+script/source = "extends Node
+
+var data_dict = {}
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+
+func add(terrain,pos=null):
+	update_dict(terrain)
+	add_child(terrain)
+	
+func move(from, to):
+	pass
+	#TODO
+	
+func remove(from, to):
+	pass
+	#TODO
+	
+func update_dict(terrain):
+	var grid_coord = Global.w2g(terrain.global_transform.origin[0],terrain.global_transform.origin[1])
+
+	data_dict[Vector2i(grid_coord[0],grid_coord[1])] = terrain
+"
+
+[node name="BaseFight" type="Node"]
+script = ExtResource("1_lsbwt")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(3.5, 3.5)
+position_smoothing_enabled = true
+drag_horizontal_enabled = true
+drag_vertical_enabled = true
+drag_horizontal_offset = 0.06
+drag_left_margin = 0.0
+drag_top_margin = 0.0
+drag_right_margin = 0.0
+drag_bottom_margin = 0.0
+script = ExtResource("2_3ihl1")
+
+[node name="CursorNode2D" type="Node2D" parent="."]
+script = ExtResource("3_qowfu")
+
+[node name="Sprite2D" type="Sprite2D" parent="CursorNode2D"]
+z_index = 999
+y_sort_enabled = true
+rotation = -2.47837
+scale = Vector2(0.05, 0.05)
+texture = ExtResource("3_qvfh3")
+
+[node name="Layer1" type="TileMapLayer" parent="."]
+z_as_relative = false
+y_sort_enabled = true
+tile_map_data = PackedByteArray("AAAAAP//AAABAAAAAAAAAP3/AAABAAAAAAABAP7/AAABAAAAAAABAP3/AAABAAAAAAACAP7/AAABAAAAAAACAP//AAABAAAAAAACAAAAAAABAAAAAAABAAEAAAABAAAAAAAAAAEAAAABAAAAAAABAAAAAAABAAAAAAABAP//AAABAAAAAAABAAIAAAAEAAAAAAD/////AAABAAAAAAD///7/AAABAAAAAAAAAPv/AAABAAAAAAAAAPz/AAABAAAAAAD///3/AAABAAAAAAABAPr/AAABAAAAAAABAPv/AAABAAAAAAACAPz/AAABAAAAAAACAP3/AAABAAAAAAADAP7/AAABAAAAAAD+////AAABAAAAAAD//wAAAAABAAAAAAD//wEAAAABAAAAAAAAAAIAAAABAAAAAAAAAAMAAAAEAAAAAAABAAMAAAAEAAAAAAACAAIAAAAEAAAAAAADAP3/AAABAAAAAAAEAPz/AAABAAAAAAD+//7/AAABAAAAAAAAAAAAAAABAAAAAAAAAP7/AAABAAAAAAAEAAAAAAAEAAAAAAACAAEAAAABAAAAAAACAAMAAAAEAAAAAAAAAAQAAAAEAAAAAAD///v/AAABAAAAAAD///z/AAABAAAAAAD+//3/AAABAAAAAAD+/wAAAAABAAAAAAABAPz/AAABAAAAAAADAP//AAABAAAAAAADAAAAAAABAAAAAAACAPv/AAABAAAAAAADAPv/AAABAAAAAAAEAPv/AAABAAAAAAADAPz/AAABAAAAAAAEAP7/AAABAAAAAAADAPr/AAABAAAAAAAEAPr/AAABAAAAAAAEAP3/AAABAAAAAAACAPr/AAABAAAAAAAAAPr/AAABAAAAAAABAPn/AAABAAAAAAACAPn/AAABAAAAAAADAPn/AAABAAAAAAAEAPn/AAABAAAAAAAFAPn/AAABAAAAAAAFAPr/AAABAAAAAAAFAPv/AAABAAAAAAAFAPz/AAABAAAAAAAFAP3/AAABAAAAAAAFAP7/AAABAAAAAAAFAP//AAABAAAAAAAEAP//AAABAAAAAAAAAPn/AAABAAAAAAD///n/AAABAAAAAAD///r/AAABAAAAAAAGAPz/AAABAAAAAAAHAPz/AAABAAAAAAAHAP3/AAABAAAAAAAIAP3/AAABAAAAAAACAPj/AAABAAAAAAACAPf/AAABAAAAAAACAPb/AAABAAAAAAABAPb/AAABAAAAAAAAAPb/AAABAAAAAAD+//z/AAABAAAAAAD+//v/AAABAAAAAAD9//3/AAABAAAAAAD9//7/AAABAAAAAAD9////AAABAAAAAAD9/wAAAAABAAAAAAD9/wEAAAABAAAAAAD9/wIAAAABAAAAAAD+/wIAAAABAAAAAAD//wIAAAABAAAAAAD+/wEAAAABAAAAAAD8/wEAAAABAAAAAAD7/wEAAAABAAAAAAD6/wAAAAABAAAAAAD6////AAABAAAAAAD7////AAABAAAAAAD7//7/AAABAAAAAAD8//7/AAABAAAAAAD8//3/AAABAAAAAAD9//z/AAABAAAAAAD8/wAAAAABAAAAAAD7/wAAAAABAAAAAAD8////AAABAAAAAAD+//r/AAABAAAAAAD9//r/AAABAAAAAAD9//v/AAABAAAAAAD8//v/AAABAAAAAAD8//z/AAABAAAAAAD///b/AAAAAAAAAAA=")
+tile_set = SubResource("TileSet_n1nc8")
+collision_enabled = false
+
+[node name="BattleUI" parent="." instance=ExtResource("8_skbsw")]
+
+[node name="DataGrid" type="Node" parent="."]
+script = SubResource("GDScript_8ck61")
+
+[node name="UnitsContainer" type="Node" parent="DataGrid"]
+script = SubResource("GDScript_mfn1r")
+
+[node name="StaticsContainer" type="Node" parent="DataGrid"]
+script = SubResource("GDScript_k81hd")
+
+[node name="Terrain" type="Node" parent="DataGrid"]
+script = SubResource("GDScript_nkgw7")
+
+[node name="BattleSystem" type="Node" parent="."]
+
+[node name="TurnQueue" type="Node" parent="BattleSystem"]
+
+[node name="TurnFocus" type="Node" parent="BattleSystem"]

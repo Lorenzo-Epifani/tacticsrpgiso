@@ -1,0 +1,79 @@
+[gd_scene load_steps=4 format=3 uid="uid://v7ku650x12pu"]
+
+[ext_resource type="Script" path="res://scenes/characters/character_node_2d.gd" id="1_dcd11"]
+
+[sub_resource type="GDScript" id="GDScript_15vpc"]
+script/source = "extends Node
+@onready var battle_data = $BattleData  # Riferimento diretto al nodo BattleData
+
+var portrait = \"\"
+var node2d = \"\"
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+	
+func initialize(char_data: Dictionary):
+	var world_xy = Global.g2w(char_data[\"coord\"].x,char_data[\"coord\"].y)
+	var sprite = $CharacterNode2D/AnimatedSprite2D  # Assicurati di avere un AnimatedSprite2D nella scena
+	node2d = $CharacterNode2D  # Assicurati di avere un AnimatedSprite2D nella scena
+	
+	
+	node2d.position = Vector2i(world_xy[0], world_xy[1])  
+	var frames = SpriteFrames.new()  # Creiamo un nuovo set di animazioni
+	frames.add_animation(\"battle_stanby\")  # Creiamo l'animazione \"battle_stanby\"
+	var dirnamee = \"res://assets/pg/{ut}/battle_standby\".format({\"ut\":char_data['type']})
+	var dir = DirAccess.open(dirnamee)
+	portrait =\"res://assets/pg/{ut}/portrait.png\".format({\"ut\":char_data['type']})
+	if dir:
+		var files = dir.get_files()  # Otteniamo tutti i file nella cartella
+		files.sort()  # Ordiniamo i file (importante per la sequenza dell'animazione)
+
+		for file in files:
+			if file.ends_with(\".png\"):  # Controlliamo che sia un'immagine PNG
+				var texture = load(dirnamee + \"/\" + file)  # Carichiamo l'immagine
+				frames.add_frame(\"battle_stanby\", texture)  # Aggiungiamo il frame
+
+		# Assegniamo i frames all'AnimatedSprite2D e avviamo l'animazione
+		sprite.sprite_frames = frames
+		sprite.play(\"battle_stanby\")  # Avviamo l'animazione
+
+		# Impostiamo la velocità dell'animazione
+		frames.set_animation_speed(\"battle_stanby\", 3)  # Velocità personalizzabile
+	else:
+		print(\"Errore: impossibile aprire la cartella \" + char_data['type'])
+"
+
+[sub_resource type="GDScript" id="GDScript_qfggw"]
+script/source = "extends Node
+
+@export var atk:int = 0
+@export var def:int = 0
+@export var hp_max:int = 1
+@export var skills:Dictionary = {}
+@export var equip:Dictionary = {}
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+"
+
+[node name="Character" type="Node"]
+script = SubResource("GDScript_15vpc")
+
+[node name="CharacterNode2D" type="Node2D" parent="."]
+script = ExtResource("1_dcd11")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="CharacterNode2D"]
+
+[node name="BattleData" type="Node" parent="."]
+script = SubResource("GDScript_qfggw")

@@ -1,0 +1,42 @@
+[gd_scene load_steps=2 format=3 uid="uid://d0ob21uhjnsib"]
+
+[sub_resource type="GDScript" id="GDScript_x04u5"]
+script/source = "extends CanvasLayer
+
+@onready var info_panel = $InfoPanel  # Riferimento al pannello
+@onready var type_label = $UnitInfoPanel/Label
+@onready var name_label = $UnitInfoPanel/NameLabel
+
+func _ready():
+	info_panel.visible = false  # Nasconde la UI all'inizio
+
+# Funzione per mostrare la UI con i dettagli dell'unità
+func show_unit_info(unit):
+	type_label.text = \": \" + unit.type
+	name_label.text = \"HP: \" + str(unit.hp) + \" | ATK: \" + str(unit.attack)
+	
+	info_panel.visible = true
+
+# Funzione per nascondere la UI quando il cursore si sposta via
+func hide_unit_info():
+	info_panel.visible = false
+"
+
+[node name="UIManager" type="CanvasLayer"]
+script = SubResource("GDScript_x04u5")
+
+[node name="InfoPanel" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TypeLabel" type="Label" parent="InfoPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="NameLabel" type="Label" parent="InfoPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
