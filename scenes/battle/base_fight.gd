@@ -20,3 +20,4 @@ func _ready():
 		
 		units_container.add(character_instance)  # Aggiungiamo alla scena
 	data_grid.build_grid_data()
+	

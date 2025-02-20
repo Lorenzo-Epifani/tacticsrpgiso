@@ -18,6 +18,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 Global="*res://data/global.gd"
+DB="*res://data/database.gd"
+GameSession="*res://data/game_session.gd"
 
 [display]
 

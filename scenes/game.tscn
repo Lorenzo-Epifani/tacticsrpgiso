@@ -54,7 +54,6 @@ func go_next():
 			await get_tree().process_frame
 			battle.battle_data = event_data
 			parent.add_child(battle)  # Aggiunge il nodo come fratello		\"cutscene\":
-			print(\"cutscene_todo\")
 		\"sequence\":
 			print(\"sequence_todo\")
 		\"worldmap\":

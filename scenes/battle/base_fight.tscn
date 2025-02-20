@@ -249,3 +249,5 @@ script = SubResource("GDScript_nkgw7")
 [node name="TurnQueue" type="Node" parent="BattleSystem"]
 
 [node name="TurnFocus" type="Node" parent="BattleSystem"]
+
+[node name="BattlePhase" type="Node" parent="."]
