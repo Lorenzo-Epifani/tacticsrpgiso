@@ -1,4 +1,5 @@
 extends Camera2D
+#Camera2D
 
 @export var cursor: Node2D  # Il cursore da seguire
 @export var follow_speed: float = 3.0  # Velocità di movimento della camera
@@ -7,6 +8,8 @@ var tile_height: int = Global.TH
 
 
 func _ready():
+	print("camera2d READY")
+
 	if cursor == null:
 		cursor = get_parent().find_child("CursorNode2D", true, false)  # Cerca il nodo "Cursor"
 func _process(delta):

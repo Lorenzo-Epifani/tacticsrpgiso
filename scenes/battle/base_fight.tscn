@@ -1,11 +1,66 @@
-[gd_scene load_steps=13 format=4 uid="uid://bxvglqyw8cfte"]
+[gd_scene load_steps=18 format=4 uid="uid://bxvglqyw8cfte"]
 
-[ext_resource type="Script" path="res://scenes/battle/base_fight.gd" id="1_lsbwt"]
 [ext_resource type="Texture2D" uid="uid://c5ds0rluj1yso" path="res://assets/ground/base green.png" id="1_o1eh3"]
 [ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
 [ext_resource type="Script" path="res://scenes/uis/camera/cursor_node.gd" id="3_qowfu"]
 [ext_resource type="Texture2D" uid="uid://dxibw27knfm5v" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
+[ext_resource type="Texture2D" uid="uid://c8si6lo0cgq4v" path="res://assets/ground/hl.png" id="5_2k8bw"]
 [ext_resource type="PackedScene" uid="uid://4m7qdl2ojld1" path="res://scenes/uis/battle/battle_ui.tscn" id="8_skbsw"]
+
+[sub_resource type="GDScript" id="GDScript_03ge3"]
+script/source = "extends Node
+#BaseFight
+var battle_data: Dictionary
+@onready var data_grid = $DataGrid  # ✅ Primo livello: DataGrid
+@onready var phase_container = $PhaseContainer  # Ottieni il nodo figlio
+
+enum BattlePhases { DEPLOY, BATTLE, REWARDS }
+var current_phase: int = BattlePhases.DEPLOY  # Inizia dalla fase di Deploy
+var current_node: Node = null  # Nodo attuale della fase
+#PhaseContainer
+
+# Percorsi ai file delle scene delle fasi
+const BATTLE_SCENE = preload(\"res://scenes/battle/battle_phase.tscn\")
+const REWARDS_SCENE = preload(\"res://scenes/battle/reward_phase.tscn\")
+const DEPLOY_SCENE = preload(\"res://scenes/battle/deploy_phase.tscn\")
+
+func _ready():
+	print(\"phasecont READY\")
+	data_grid.build_grid_data()
+	start_phase(current_phase)  # Avvia la prima fase
+
+func start_phase(phase: int):
+	\"\"\"Avvia la fase specificata della battaglia\"\"\"
+	if current_node:
+		current_node.queue_free()  # Rimuove il nodo precedente se esiste
+		await current_node.tree_exited  # Attende la sua completa rimozione
+	
+	match phase:
+		BattlePhases.DEPLOY:
+			current_node = DEPLOY_SCENE.instantiate()
+		BattlePhases.BATTLE:
+			current_node = BATTLE_SCENE.instantiate()
+		BattlePhases.REWARDS:
+			current_node = REWARDS_SCENE.instantiate()
+
+	if current_node:
+		phase_container.add_child(current_node)  # Aggiunge il nodo della fase corrente
+		current_node.connect(\"phase_completed\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+
+func _on_phase_completed():
+	\"\"\"Gestisce la transizione tra le fasi\"\"\"
+	if current_phase == BattlePhases.DEPLOY:
+		current_phase = BattlePhases.BATTLE
+	elif current_phase == BattlePhases.BATTLE:
+		current_phase = BattlePhases.REWARDS
+	else:
+		print(\"✅ Battaglia completata!\")  
+		#NEXT EVENT
+		# Puoi fare il cleanup qui
+		return
+	
+	start_phase(current_phase)  # Avvia la nuova fase
+"
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sachx"]
 texture = ExtResource("1_o1eh3")
@@ -58,10 +113,92 @@ tile_offset_axis = 1
 tile_size = Vector2i(32, 16)
 sources/0 = SubResource("TileSetAtlasSource_sachx")
 
+[sub_resource type="GDScript" id="GDScript_7u1l5"]
+script/source = "extends TileMapLayer
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+	
+func update_tile(x, y, new_atlas_coords):
+	set_cell(Vector2i(x, y), 0, new_atlas_coords, 0)  # Cambia la tile
+"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_5cies"]
+texture = ExtResource("5_2k8bw")
+margins = Vector2i(16, 0)
+separation = Vector2i(16, 0)
+texture_region_size = Vector2i(32, 16)
+0:4/0 = 0
+0:7/0 = 0
+0:10/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+1:4/0 = 0
+1:7/0 = 0
+1:10/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_0epji"]
+tile_shape = 1
+tile_layout = 5
+tile_offset_axis = 1
+tile_size = Vector2i(32, 16)
+sources/0 = SubResource("TileSetAtlasSource_5cies")
+
+[sub_resource type="GDScript" id="GDScript_del22"]
+script/source = "extends TileMapLayer
+
+@onready var data_grid = get_parent().get_node(\"DataGrid\")  # Nodo fratello con il dizionario
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+	
+func highlight_tile(x, y, highlight: bool):
+	if highlight:
+		set_cell(Vector2i(x, y), 0, Vector2i(1, 0), 0)  # Imposta la tile evidenziata
+	else:
+		erase_cell(Vector2i(x, y))  # Rimuove la tile
+		
+
+func reload_tiles():
+	for child in get_children():
+		child.queue_free()  # Segna il nodo per la rimozione al prossimo frame
+	for pos in data_grid.grid_data:
+		var content = data_grid.grid_data[pos]
+		var tiletype
+		if content.get(\"deployable\",false):
+			tiletype = \"MOVE\"
+		else:
+			tiletype = content.get(\"predict\",false)
+		if tiletype:
+			var anim_sprite = Animations.over_tile_sprite(tiletype)
+			var gpos = Global.g2w(pos.x+1,pos.y-1) 
+			anim_sprite.position = Vector2i(gpos[0],gpos[1])
+			anim_sprite.play(\"default\")
+			add_child(anim_sprite)
+	
+	
+
+	
+	
+"
+
 [sub_resource type="GDScript" id="GDScript_8ck61"]
 script/source = "extends Node
 class_name DataGrid
-
+#DataGrid
 @onready var units_container = $UnitsContainer
 @onready var terrain = $Terrain
 @onready var static_container = $StaticsContainer
@@ -75,10 +212,12 @@ func update_grid_data():
 
 func get_at(grid_position: Vector2i):
 	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null })
+	print(grid_position)	
 	print(content)
 	return content
 	
-func _ready():
+func _ready():	
+	print(\"DataGrid ready\")
 	pass
 	
 func _process(delta):
@@ -105,12 +244,23 @@ func build_grid_data():
 # 🔹 Metodo per ottenere dati da una cella specifica
 "
 
-[sub_resource type="GDScript" id="GDScript_mfn1r"]
+[sub_resource type="GDScript" id="GDScript_mwm6u"]
 script/source = "extends Node
-
+#UnitCOntainer
+var character_scene = preload(\"res://scenes/characters/character_node_2d.tscn\")  # Carica la scena del personaggio
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+	var battle_data = find_parent(\"BaseFight\").battle_data  # Ottiene il valore del genitore all'avvio
+	var characters = battle_data.units.enemies
+	for el in characters:  # Creiamo 3 istanze
+		var character_instance = character_scene.instantiate()
+		character_instance.initialize(el)  # Passiamo la cartella dell'animazione
+		#print(\"CREATO:\" + str(char) + \"COORD:\" + str(coord))
+		# Posizioniamo i personaggi in modo che non si sovrappongano
+ 
+		
+		add(character_instance)
 	pass # Replace with function body.
 
 
@@ -138,6 +288,7 @@ func update_dict(unit):
 
 [sub_resource type="GDScript" id="GDScript_k81hd"]
 script/source = "extends Node
+#StaticContainerr
 
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
@@ -169,6 +320,7 @@ func update_dict(static_el):
 
 [sub_resource type="GDScript" id="GDScript_nkgw7"]
 script/source = "extends Node
+#Terrain
 
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
@@ -199,7 +351,7 @@ func update_dict(terrain):
 "
 
 [node name="BaseFight" type="Node"]
-script = ExtResource("1_lsbwt")
+script = SubResource("GDScript_03ge3")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 zoom = Vector2(3.5, 3.5)
@@ -229,6 +381,12 @@ y_sort_enabled = true
 tile_map_data = PackedByteArray("AAAAAP//AAABAAAAAAAAAP3/AAABAAAAAAABAP7/AAABAAAAAAABAP3/AAABAAAAAAACAP7/AAABAAAAAAACAP//AAABAAAAAAACAAAAAAABAAAAAAABAAEAAAABAAAAAAAAAAEAAAABAAAAAAABAAAAAAABAAAAAAABAP//AAABAAAAAAABAAIAAAAEAAAAAAD/////AAABAAAAAAD///7/AAABAAAAAAAAAPv/AAABAAAAAAAAAPz/AAABAAAAAAD///3/AAABAAAAAAABAPr/AAABAAAAAAABAPv/AAABAAAAAAACAPz/AAABAAAAAAACAP3/AAABAAAAAAADAP7/AAABAAAAAAD+////AAABAAAAAAD//wAAAAABAAAAAAD//wEAAAABAAAAAAAAAAIAAAABAAAAAAAAAAMAAAAEAAAAAAABAAMAAAAEAAAAAAACAAIAAAAEAAAAAAADAP3/AAABAAAAAAAEAPz/AAABAAAAAAD+//7/AAABAAAAAAAAAAAAAAABAAAAAAAAAP7/AAABAAAAAAAEAAAAAAAEAAAAAAACAAEAAAABAAAAAAACAAMAAAAEAAAAAAAAAAQAAAAEAAAAAAD///v/AAABAAAAAAD///z/AAABAAAAAAD+//3/AAABAAAAAAD+/wAAAAABAAAAAAABAPz/AAABAAAAAAADAP//AAABAAAAAAADAAAAAAABAAAAAAACAPv/AAABAAAAAAADAPv/AAABAAAAAAAEAPv/AAABAAAAAAADAPz/AAABAAAAAAAEAP7/AAABAAAAAAADAPr/AAABAAAAAAAEAPr/AAABAAAAAAAEAP3/AAABAAAAAAACAPr/AAABAAAAAAAAAPr/AAABAAAAAAABAPn/AAABAAAAAAACAPn/AAABAAAAAAADAPn/AAABAAAAAAAEAPn/AAABAAAAAAAFAPn/AAABAAAAAAAFAPr/AAABAAAAAAAFAPv/AAABAAAAAAAFAPz/AAABAAAAAAAFAP3/AAABAAAAAAAFAP7/AAABAAAAAAAFAP//AAABAAAAAAAEAP//AAABAAAAAAAAAPn/AAABAAAAAAD///n/AAABAAAAAAD///r/AAABAAAAAAAGAPz/AAABAAAAAAAHAPz/AAABAAAAAAAHAP3/AAABAAAAAAAIAP3/AAABAAAAAAACAPj/AAABAAAAAAACAPf/AAABAAAAAAACAPb/AAABAAAAAAABAPb/AAABAAAAAAAAAPb/AAABAAAAAAD+//z/AAABAAAAAAD+//v/AAABAAAAAAD9//3/AAABAAAAAAD9//7/AAABAAAAAAD9////AAABAAAAAAD9/wAAAAABAAAAAAD9/wEAAAABAAAAAAD9/wIAAAABAAAAAAD+/wIAAAABAAAAAAD//wIAAAABAAAAAAD+/wEAAAABAAAAAAD8/wEAAAABAAAAAAD7/wEAAAABAAAAAAD6/wAAAAABAAAAAAD6////AAABAAAAAAD7////AAABAAAAAAD7//7/AAABAAAAAAD8//7/AAABAAAAAAD8//3/AAABAAAAAAD9//z/AAABAAAAAAD8/wAAAAABAAAAAAD7/wAAAAABAAAAAAD8////AAABAAAAAAD+//r/AAABAAAAAAD9//r/AAABAAAAAAD9//v/AAABAAAAAAD8//v/AAABAAAAAAD8//z/AAABAAAAAAD///b/AAAAAAAAAAA=")
 tile_set = SubResource("TileSet_n1nc8")
 collision_enabled = false
+script = SubResource("GDScript_7u1l5")
+
+[node name="HLayer" type="TileMapLayer" parent="."]
+y_sort_enabled = true
+tile_set = SubResource("TileSet_0epji")
+script = SubResource("GDScript_del22")
 
 [node name="BattleUI" parent="." instance=ExtResource("8_skbsw")]
 
@@ -236,7 +394,7 @@ collision_enabled = false
 script = SubResource("GDScript_8ck61")
 
 [node name="UnitsContainer" type="Node" parent="DataGrid"]
-script = SubResource("GDScript_mfn1r")
+script = SubResource("GDScript_mwm6u")
 
 [node name="StaticsContainer" type="Node" parent="DataGrid"]
 script = SubResource("GDScript_k81hd")
@@ -244,10 +402,4 @@ script = SubResource("GDScript_k81hd")
 [node name="Terrain" type="Node" parent="DataGrid"]
 script = SubResource("GDScript_nkgw7")
 
-[node name="BattleSystem" type="Node" parent="."]
-
-[node name="TurnQueue" type="Node" parent="BattleSystem"]
-
-[node name="TurnFocus" type="Node" parent="BattleSystem"]
-
-[node name="BattlePhase" type="Node" parent="."]
+[node name="PhaseContainer" type="Node" parent="."]

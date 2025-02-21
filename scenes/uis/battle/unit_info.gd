@@ -1,5 +1,4 @@
 extends Control
-
 @onready var sprite_display = $TextureRect
 
 func update_unit_info(unit_data):

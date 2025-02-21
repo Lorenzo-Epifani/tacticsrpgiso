@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Global="*res://data/global.gd"
 DB="*res://data/database.gd"
 GameSession="*res://data/game_session.gd"
+Animations="*res://data/animations.gd"
 
 [display]
 

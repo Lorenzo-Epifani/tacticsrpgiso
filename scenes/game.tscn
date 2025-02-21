@@ -46,14 +46,13 @@ func _ready() -> void:
 
 func go_next():
 	var event_data = event_queue.pop_front()
-	var parent = get_parent()
+	var event_container = get_parent().get_node(\"EventContainer\")  # Ottieni il nodo fratello
 	match event_data['type']:
 		\"battle\":
 			var game = get_parent()  # Trova il nodo genitore
 			var battle = battle_scene.instantiate()  # Crea l'istanza
-			await get_tree().process_frame
 			battle.battle_data = event_data
-			parent.add_child(battle)  # Aggiunge il nodo come fratello		\"cutscene\":
+			event_container.add_child(battle)  # Aggiunge il nodo come fratello		\"cutscene\":
 		\"sequence\":
 			print(\"sequence_todo\")
 		\"worldmap\":
@@ -72,3 +71,5 @@ script = SubResource("GDScript_4b2bb")
 
 [node name="GameManager" parent="." instance=ExtResource("3_q2e5h")]
 script = SubResource("GDScript_ari6u")
+
+[node name="EventContainer" type="Node" parent="."]

@@ -1,3 +1,5 @@
+#CursorNode2D
+
 extends Node2D
 @export var layer: TileMapLayer  # Riferimento al TileMap principale
 @export var layer_index: int = 0  # Indice del layer su cui vogliamo muovere il cursore
@@ -11,6 +13,9 @@ var battle_ui
 @export var ui_manager: CanvasLayer  # Riferimento all'UI Manager
 
 func _ready():
+	
+	print("cursornode READY")
+
 	if battle_ui == null:
 		battle_ui = get_parent().find_child("BattleUI", true, false)  # Cerca
 	if data_grid == null:
@@ -22,6 +27,9 @@ func _ready():
 	update_cursor_position()
 
 func _input(event):
+	var current_phase = get_parent().current_phase
+	var BattlePhases = get_parent().BattlePhases
+	
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_RIGHT:
 			cursor_position += Vector2i(1, 0)  # Movimento isometrico a destra
@@ -32,7 +40,18 @@ func _input(event):
 		elif event.keycode == KEY_UP:
 			cursor_position += Vector2i(0, 1)  # Movimento isometrico in alto
 		update_cursor_position()
-
+	match current_phase:
+		BattlePhases.DEPLOY:
+			if event is InputEventKey and event.pressed:
+				print(event.keycode)
+				pass
+		BattlePhases.BATTLE:
+			if event is InputEventKey and event.pressed:
+				pass
+		BattlePhases.REWARDS:
+			if event is InputEventKey and event.pressed:
+				pass
+	
 func update_cursor_position():
 
 	# Converte la posizione della griglia in coordinate globali per il layer selezionato

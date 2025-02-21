@@ -1,0 +1,66 @@
+[gd_scene load_steps=5 format=3 uid="uid://c5jdsdlt1palp"]
+
+[ext_resource type="Script" path="res://scenes/uis/battle/unit_info.gd" id="1_xx3wt"]
+[ext_resource type="Texture2D" uid="uid://bgyorne08giag" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
+
+[sub_resource type="GDScript" id="GDScript_515iq"]
+script/source = "extends Node
+
+var depl_tiles=[ Vector2i(3,4),Vector2i(4,4),Vector2i(4,3),Vector2i(3,3)]
+var party=GameSession.data['party']
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	var data_grid = get_parent().get_parent().get_node(\"DataGrid\")  # Assicurati che il nome sia corretto
+	for loc in depl_tiles:
+		if data_grid.grid_data.get(loc,null)==null:
+			data_grid.grid_data[loc]={
+				\"deployable\"=true,
+				\"statics\"=null,
+				\"terrain\"=null,
+				\"unit\"=null
+			}
+		else:
+			data_grid.grid_data[loc]['deployable'] = true
+	
+	var h_layer = get_parent().get_parent().get_node(\"HLayer\")
+	h_layer.reload_tiles()
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ij0rm"]
+texture = ExtResource("2_ynkis")
+modulate_color = Color(1, 1, 1, 0.588235)
+
+[node name="DeployPhase" type="Node"]
+script = SubResource("GDScript_515iq")
+
+[node name="DeployInfo" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_xx3wt")
+
+[node name="PanelContainer" type="PanelContainer" parent="DeployInfo"]
+z_as_relative = false
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 0
+offset_left = 250.0
+offset_top = 300.0
+offset_right = 750.0
+offset_bottom = 600.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_ij0rm")
+
+[node name="Position" type="Label" parent="DeployInfo/PanelContainer"]
+layout_mode = 2
+
+[node name="Class" type="Label" parent="DeployInfo/PanelContainer"]
+layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="DeployInfo"]
+layout_mode = 2
+offset_left = 250.0
+offset_top = 300.0
+offset_right = 750.0
+offset_bottom = 600.0
+expand_mode = 1
