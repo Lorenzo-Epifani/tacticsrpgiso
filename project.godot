@@ -17,10 +17,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Global="*res://data/global.gd"
-DB="*res://data/database.gd"
-GameSession="*res://data/game_session.gd"
-Animations="*res://data/animations.gd"
+Global="*res://scripts/autoload/global.gd"
+DB="*res://scripts/autoload/database.gd"
+GameSession="*res://scripts/autoload/game_session.gd"
+Animations="*res://scripts/autoload/animations.gd"
 
 [display]
 
