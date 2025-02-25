@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/uis/battle/battle_ui.gd" id="1_tdd7p"]
 [ext_resource type="Script" path="res://scenes/uis/battle/unit_info.gd" id="1_tslr6"]
-[ext_resource type="Texture2D" uid="uid://bgyorne08giag" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="3_povuj"]
+[ext_resource type="Texture2D" uid="uid://n6dwsfvubynx" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="3_povuj"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ngpob"]
 texture = ExtResource("3_povuj")

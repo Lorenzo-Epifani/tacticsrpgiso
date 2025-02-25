@@ -30,8 +30,8 @@ var event_queue=[
 	\"type\":\"battle\",
 	\"units\":{
 		\"enemies\":[
-		{\"type\":\"human_warrior\" ,\"coord\": Vector2i(0, 0)},
-		{\"type\":\"fire_human_warrior\" ,\"coord\": Vector2i(2, 2)}
+		{\"coord\": Vector2i(1, 1)},
+		{\"race\":\"cobold\",\"class_\":\"soldier\",\"coord\": Vector2i(-1, -1)}
 		],
 		\"allies\":[],
 		\"neutral\":[],

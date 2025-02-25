@@ -1,10 +1,10 @@
 [gd_scene load_steps=18 format=4 uid="uid://bxvglqyw8cfte"]
 
-[ext_resource type="Texture2D" uid="uid://c5ds0rluj1yso" path="res://assets/ground/base green.png" id="1_o1eh3"]
+[ext_resource type="Texture2D" uid="uid://cj58mggtdj1rg" path="res://assets/ground/base green.png" id="1_o1eh3"]
 [ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
 [ext_resource type="Script" path="res://scenes/uis/camera/cursor_node.gd" id="3_qowfu"]
-[ext_resource type="Texture2D" uid="uid://dxibw27knfm5v" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
-[ext_resource type="Texture2D" uid="uid://c8si6lo0cgq4v" path="res://assets/ground/hl.png" id="5_2k8bw"]
+[ext_resource type="Texture2D" uid="uid://b3oilwr33cm6i" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
+[ext_resource type="Texture2D" uid="uid://bfc2fncvl1euv" path="res://assets/ground/hl.png" id="5_2k8bw"]
 [ext_resource type="PackedScene" uid="uid://4m7qdl2ojld1" path="res://scenes/uis/battle/battle_ui.tscn" id="8_skbsw"]
 
 [sub_resource type="GDScript" id="GDScript_03ge3"]
@@ -108,7 +108,7 @@ texture_region_size = Vector2i(32, 32)
 
 [sub_resource type="TileSet" id="TileSet_n1nc8"]
 tile_shape = 1
-tile_layout = 5
+tile_layout = 4
 tile_offset_axis = 1
 tile_size = Vector2i(32, 16)
 sources/0 = SubResource("TileSetAtlasSource_sachx")
@@ -146,7 +146,7 @@ texture_region_size = Vector2i(32, 16)
 
 [sub_resource type="TileSet" id="TileSet_0epji"]
 tile_shape = 1
-tile_layout = 5
+tile_layout = 4
 tile_offset_axis = 1
 tile_size = Vector2i(32, 16)
 sources/0 = SubResource("TileSetAtlasSource_5cies")
@@ -218,10 +218,10 @@ func get_at(grid_position: Vector2i):
 	
 func _ready():	
 	print(\"DataGrid ready\")
+	update_grid_data()
 	pass
 	
 func _process(delta):
-	update_grid_data()
 	pass
 	
 
@@ -247,7 +247,7 @@ func build_grid_data():
 [sub_resource type="GDScript" id="GDScript_mwm6u"]
 script/source = "extends Node
 #UnitCOntainer
-var character_scene = preload(\"res://scenes/characters/character_node_2d.tscn\")  # Carica la scena del personaggio
+var character_scene = preload(\"res://scenes/characters/character.tscn\")  # Carica la scena del personaggio
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -255,7 +255,7 @@ func _ready() -> void:
 	var characters = battle_data.units.enemies
 	for el in characters:  # Creiamo 3 istanze
 		var character_instance = character_scene.instantiate()
-		character_instance.initialize(el)  # Passiamo la cartella dell'animazione
+		character_instance.char_data = el  # Passiamo la cartella dell'animazione
 		#print(\"CREATO:\" + str(char) + \"COORD:\" + str(coord))
 		# Posizioniamo i personaggi in modo che non si sovrappongano
  
@@ -269,8 +269,8 @@ func _process(delta: float) -> void:
 	pass
 
 func add(unit,pos=null):
-	update_dict(unit)
 	add_child(unit)
+	update_dict(unit)
 	
 func move(from, to):
 	pass
@@ -281,9 +281,11 @@ func remove(from, to):
 	#TODO
 	
 func update_dict(unit):
-	var grid_coord = Global.w2g(unit.node2d.global_transform.origin[0],unit.node2d.global_transform.origin[1])
-
-	data_dict[Vector2i(grid_coord[0],grid_coord[1])] = unit
+	#print(unit.char2d)
+	#var grid_coord = Global.w2g(unit.sprite.global_transform.origin[0],unit.sprite.global_transform.origin[1])
+	unit.char2d.playy(\"walk\")
+	var grid_xy = Global.w2g(unit.sprite.position[0],unit.sprite.position[1])
+	data_dict[Vector2i(grid_xy[0], grid_xy[1])] = unit
 "
 
 [sub_resource type="GDScript" id="GDScript_k81hd"]
