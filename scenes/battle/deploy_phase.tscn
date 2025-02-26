@@ -35,6 +35,7 @@ func update_deploy_info(cursor_content):
 script/source = "extends Control
 
 @onready var deploy_ui = $DeployUIContainer
+enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY}
 # Called when the node enters the scene tree for the first time.
 var hover_deploy=false
 var deploy_index=0
@@ -84,7 +85,8 @@ func update_deploy_info():
 		hover_deploy=false
 		
 #CONTROL HANDLER
-func _input(event):
+
+func __input(event):
 	var cursor = Global.get_batte_cursor()
 	if begin_battle_alert:
 		print(\"BEGIN BATTLE?\")
