@@ -1,7 +1,8 @@
 extends Node
 const TW: int = 32
 const TH: int = 16
-enum orient { SOUTH,EAST, NORTH, WEST }
+enum orient { SOUTH, EAST, NORTH, WEST }
+enum team { MY, ENEMY, ALLIED, NEUTRAL }
 
 func dbg(obj):
 	print("📌 Debug dell'oggetto:", obj)
@@ -48,3 +49,11 @@ func generate_pg(_race=null,_class=null):
 func rc_2_portrait(race,class_):
 	var portrait = "res://assets/pg/races/{race}/{class}/portrait.png".format({"race": race,"class":class_})
 	return portrait
+	
+func get_batte_cursor():
+	var cursor = get_node("/root/Game/EventContainer/BaseFight/CursorNode2D")
+	return cursor
+	
+func get_datagrid():
+	var data_grid = get_node("/root/Game/EventContainer/BaseFight/DataGrid")
+	return data_grid

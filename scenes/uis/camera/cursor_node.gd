@@ -6,6 +6,7 @@ extends Node2D
 var active_layer: int = 1  # Layer attivo su cui il cursore si trova
 var cursor_position: Vector2i = Vector2i(0, 0)  # Posizione del cursore in coordinate della griglia
 var cursor_content
+var locked = false
 var tile_width: int = Global.TW
 var tile_height: int = Global.TH
 var world_position : Vector2
@@ -32,7 +33,7 @@ func _input(event):
 	var current_phase = get_parent().current_phase
 	var BattlePhases = get_parent().BattlePhases
 	
-	if event is InputEventKey and event.pressed:
+	if event is InputEventKey and event.pressed and !locked:
 		if event.keycode == KEY_RIGHT:
 			cursor_position += Vector2i(1, 0)  # Movimento isometrico a destra
 		elif event.keycode == KEY_LEFT:
@@ -67,6 +68,7 @@ func update_cursor_position():
 	var grid_coord = Global.w2g(world_position[0],world_position[1])
 	#print("Cursore su:", cursor_position, "Grid", grid_coord, "→ Layer:", active_layer, "→ Posizione globale:", world_position)
 	cursor_content = data_grid.get_at(Vector2i(grid_coord[0],grid_coord[1]))
+	cursor_content['location']=Vector2i(grid_coord[0],grid_coord[1])
 	battle_ui.update_unit_info(cursor_content)
 	match phase:
 		BattlePhases.DEPLOY:
@@ -77,3 +79,8 @@ func update_cursor_position():
 			pass
 		BattlePhases.REWARDS:
 			pass
+func lock():
+	locked=true
+	
+func unlock():
+	locked=false

@@ -6,16 +6,6 @@
 
 [sub_resource type="GDScript" id="GDScript_4b2bb"]
 script/source = "extends Node
-
-
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 "
 
 [sub_resource type="GDScript" id="GDScript_ari6u"]
@@ -30,8 +20,16 @@ var event_queue=[
 	\"type\":\"battle\",
 	\"units\":{
 		\"enemies\":[
-		{\"coord\": Vector2i(1, 1)},
-		{\"race\":\"cobold\",\"class_\":\"soldier\",\"coord\": Vector2i(-1, -1)}
+			{
+				\"soft_stat\"={\"atk\":10,\"def\":10,\"hp\":10,\"spd\":10,\"lvl\":1,\"exp\":0},
+				\"position\"=Vector2i(2,-2),
+				\"meta\"={\"race\":\"bangaa\",\"class_\":\"gladiator\",\"name_\":\"enemy1\"}
+			},
+			{
+				\"soft_stat\"={\"atk\":110,\"def\":210,\"hp\":10,\"spd\":110,\"lvl\":11,\"exp\":0},
+				\"position\"=Vector2i(2,-3),
+				\"meta\"={\"race\":\"nu_mou\",\"class_\":\"black_mage\",\"name_\":\"enemy2\"}
+			}
 		],
 		\"allies\":[],
 		\"neutral\":[],
@@ -57,10 +55,6 @@ func go_next():
 			print(\"sequence_todo\")
 		\"worldmap\":
 			print(\"sequence_todo\")
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 "
 
 [node name="Game" type="Node2D"]

@@ -13,3 +13,4 @@ func update_unit_info(unit_data):
 		propagate_call("set_visible", [true])
 	else:
 		propagate_call("set_visible", [false])
+		

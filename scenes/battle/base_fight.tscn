@@ -1,10 +1,10 @@
 [gd_scene load_steps=18 format=4 uid="uid://bxvglqyw8cfte"]
 
-[ext_resource type="Texture2D" uid="uid://cj58mggtdj1rg" path="res://assets/ground/base green.png" id="1_o1eh3"]
+[ext_resource type="Texture2D" uid="uid://c6v3quk7fjkvc" path="res://assets/ground/base green.png" id="1_o1eh3"]
 [ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
 [ext_resource type="Script" path="res://scenes/uis/camera/cursor_node.gd" id="3_qowfu"]
-[ext_resource type="Texture2D" uid="uid://b3oilwr33cm6i" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
-[ext_resource type="Texture2D" uid="uid://bfc2fncvl1euv" path="res://assets/ground/hl.png" id="5_2k8bw"]
+[ext_resource type="Texture2D" uid="uid://c1u5qvikgkmyx" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
+[ext_resource type="Texture2D" uid="uid://bmu5tv1iws0w1" path="res://assets/ground/hl.png" id="5_2k8bw"]
 [ext_resource type="PackedScene" uid="uid://4m7qdl2ojld1" path="res://scenes/uis/battle/battle_ui.tscn" id="8_skbsw"]
 
 [sub_resource type="GDScript" id="GDScript_03ge3"]
@@ -117,14 +117,7 @@ sources/0 = SubResource("TileSetAtlasSource_sachx")
 script/source = "extends TileMapLayer
 
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
 
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 	
 func update_tile(x, y, new_atlas_coords):
 	set_cell(Vector2i(x, y), 0, new_atlas_coords, 0)  # Cambia la tile
@@ -157,13 +150,7 @@ script/source = "extends TileMapLayer
 @onready var data_grid = get_parent().get_node(\"DataGrid\")  # Nodo fratello con il dizionario
 
 # Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
 
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 	
 func highlight_tile(x, y, highlight: bool):
 	if highlight:
@@ -220,14 +207,12 @@ func _ready():
 	print(\"DataGrid ready\")
 	update_grid_data()
 	pass
-	
-func _process(delta):
-	pass
-	
+
 
 # 🔹 Costruisce il dizionario leggendo i dati dai 3 nodi figli
 func build_grid_data():
 	# Recupera tutte le coordinate uniche dai 3 dizionari
+	if !units_container or !terrain or ! static_container: return
 	var all_keys = units_container.data_dict.keys() + terrain.data_dict.keys() + static_container.data_dict.keys()
 	all_keys = all_keys.duplicate()  # Rimuove riferimenti duplicati
 	all_keys.sort()  # Opzionale: Ordina per una visualizzazione più chiara
@@ -247,26 +232,25 @@ func build_grid_data():
 [sub_resource type="GDScript" id="GDScript_mwm6u"]
 script/source = "extends Node
 #UnitCOntainer
-var character_scene = preload(\"res://scenes/characters/character.tscn\")  # Carica la scena del personaggio
+var batte_unit_scene = preload(\"res://scenes/battle/battle_unit.tscn\")  # Carica la scena del personaggio
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	var battle_data = find_parent(\"BaseFight\").battle_data  # Ottiene il valore del genitore all'avvio
 	var characters = battle_data.units.enemies
 	for el in characters:  # Creiamo 3 istanze
-		var character_instance = character_scene.instantiate()
-		character_instance.char_data = el  # Passiamo la cartella dell'animazione
+		var battle_unit_instance = batte_unit_scene.instantiate()
+		battle_unit_instance.initialize(el['soft_stat'],el['position'],el['meta'])  # Passiamo la cartella dell'animazione
 		#print(\"CREATO:\" + str(char) + \"COORD:\" + str(coord))
 		# Posizioniamo i personaggi in modo che non si sovrappongano
  
 		
-		add(character_instance)
+		add(battle_unit_instance)
 	pass # Replace with function body.
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+
 
 func add(unit,pos=null):
 	add_child(unit)
@@ -286,6 +270,8 @@ func update_dict(unit):
 	unit.char2d.playy(\"walk\")
 	var grid_xy = Global.w2g(unit.sprite.position[0],unit.sprite.position[1])
 	data_dict[Vector2i(grid_xy[0], grid_xy[1])] = unit
+	if get_parent().has_node(\"StaticsContainer\") and get_parent().has_node(\"Terrain\"):
+		get_parent().build_grid_data()
 "
 
 [sub_resource type="GDScript" id="GDScript_k81hd"]
@@ -293,14 +279,6 @@ script/source = "extends Node
 #StaticContainerr
 
 var data_dict = {}
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 
 func add(static_el,pos=null):
 	update_dict(static_el)
@@ -326,13 +304,6 @@ script/source = "extends Node
 
 var data_dict = {}
 # Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 
 func add(terrain,pos=null):
 	update_dict(terrain)

@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3 uid="uid://c5jdsdlt1palp"]
 
-[ext_resource type="Texture2D" uid="uid://n6dwsfvubynx" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
+[ext_resource type="Texture2D" uid="uid://8vt7rvr5qkt7" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
 
 [sub_resource type="GDScript" id="GDScript_515iq"]
 script/source = "extends Node
@@ -29,8 +29,6 @@ func update_deploy_info(cursor_content):
 	#deploy_info_ui.update_deploy_info(cursor_content)
 	deploy_info_ui.update_deploy_info()
 	
-func _process(delta: float) -> void:
-	pass
 "
 
 [sub_resource type="GDScript" id="GDScript_jxbrb"]
@@ -40,32 +38,115 @@ script/source = "extends Control
 # Called when the node enters the scene tree for the first time.
 var hover_deploy=false
 var deploy_index=0
-var deployable = GameSession.data['party']
+var deploying = false
+var begin_battle_alert = false
+var party_deployable = GameSession.data['party'].duplicate(true)
+var party_deployed = []
+var batte_unit_scene = preload(\"res://scenes/battle/battle_unit.tscn\")  # Carica la scena del personaggio
+
+
+func deploy_member(unit,location):
+	var uc = get_node(\"/root/Game/EventContainer/BaseFight/DataGrid/UnitsContainer\")
+	var battle_unit = batte_unit_scene.instantiate()
+	battle_unit.from_party_member(party_deployable[deploy_index], location)
+	deploying = true
+	var base_battle_ui = get_node(\"/root/Game/EventContainer/BaseFight/BattleUI\")
+	base_battle_ui.hide_()
+	battle_unit['team']=Global.team.MY
+	uc.add(battle_unit)
+	reload_party(deploy_index)
+	update_deploy_info()
+
+	
+func reload_party(index=null,action=\"deploy\"):
+	match action:
+		\"deploy\":
+			party_deployed.append({\"el\":party_deployable[index],\"i\":index})
+			#party_deployable[deploy_index]['deployed']=true
+			party_deployable.remove_at(index)
+		\"undeploy\":
+			var toin=party_deployed.pop_back()
+			party_deployable.insert(toin['i'],toin['el'])
+			return toin
+
+
 func _ready() -> void:
 	pass # Replace with function body.
 
 func update_deploy_info():
-	var cursor_content = get_node(\"/root/Game/EventContainer/BaseFight/CursorNode2D\").cursor_content
-	if cursor_content.get(\"deployable\",false):
+	var cursor = Global.get_batte_cursor()
+	var cursor_content = cursor.cursor_content
+	if cursor_content.get(\"deployable\",false) and !deploying:
 		hover_deploy=true
-		deploy_ui.show(GameSession.data['party'][deploy_index])
+		deploy_ui.show(party_deployable[deploy_index])
 	else:
 		deploy_ui.hide()
 		hover_deploy=false
 		
-
+#CONTROL HANDLER
 func _input(event):
-	if hover_deploy:
+	var cursor = Global.get_batte_cursor()
+	if begin_battle_alert:
+		print(\"BEGIN BATTLE?\")
 		if event is InputEventKey and event.pressed:
 			match event.keycode:
-				KEY_TAB:
-					if deployable.size()-1>deploy_index: deploy_index+=1
-					else: deploy_index=0
+				KEY_X:
+					begin_battle_alert=false
+					cursor.unlock()
+					undeploy_last()
 				KEY_Z:
-					print(\"deploy\")#TODO
+					print(\"BATTLE START\")
+	else:
+		if cursor:
+			var cursor_content = cursor.cursor_content
+			if deploying:
+				cursor.lock()
+				#disable cursor and lock camera	
+				if event is InputEventKey and event.pressed:
+					match event.keycode:
+						KEY_Z:
+							#TODO
+							cursor.unlock()	
+							deploying=false	
+							var base_battle_ui = get_node(\"/root/Game/EventContainer/BaseFight/BattleUI\")
+							base_battle_ui.show_()
+							if party_deployable.size()==0: #TODO. OR EMPTY TILES = 0
+								begin_battle_alert=true
+								cursor.lock()
+						KEY_X:
+							#TODO UNDEPLOY undeploy_last()
+							deploying=false
+							cursor.unlock()	
+							undeploy_last()	
+						KEY_RIGHT:
+							cursor_content['unit'].orient=Global.orient.EAST
+						KEY_UP:
+							cursor_content['unit'].orient=Global.orient.NORTH
+						KEY_DOWN:
+							cursor_content['unit'].orient=Global.orient.SOUTH
+						KEY_LEFT:
+							cursor_content['unit'].orient=Global.orient.WEST
+					cursor_content['unit'].char2d.playy(\"walk\")
+			if hover_deploy and !deploying:
+				if event is InputEventKey and event.pressed:
+					match event.keycode:
+						KEY_TAB:
+							if party_deployable.size()-1>deploy_index: deploy_index+=1
+							else: deploy_index=0
+						KEY_Z:
+							if !cursor_content.get('unit',false):
+								deploy_member(party_deployable[deploy_index],cursor_content['location'])
+								deploy_index=0
+
+func undeploy_last():
+	var last_deployed = reload_party(null,\"undeploy\")['el']
+	for child in get_node(\"/root/Game/EventContainer/BaseFight/DataGrid/UnitsContainer\").get_children():
+		if child.get(\"id\")==last_deployed.id: #PER ID!!!! UNSAFE
+			child.queue_free()
+			get_node(\"/root/Game/EventContainer/BaseFight/DataGrid\").build_grid_data()
+			break
+						
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 "
 
 [sub_resource type="GDScript" id="GDScript_aox20"]
@@ -78,8 +159,8 @@ func _ready() -> void:
 	pass # Replace with function body.
 
 func show(party_member):
-	var race=party_member['meta_stats']['razza']
-	var class_=party_member['meta_stats']['classe']
+	var race=party_member['meta']['race']
+	var class_=party_member['meta']['class_']
 	texture_port.texture = load(Global.rc_2_portrait(race, class_))
 	texture_port.size = Vector2(300, 300)  # Imposta una dimensione esatta in pixel
 	texture_port.position = Vector2(430, 200)  # Posiziona la texture a (X=100, Y=200)
@@ -89,8 +170,6 @@ func hide():
 	propagate_call(\"set_visible\", [false])
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 "
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_na22p"]

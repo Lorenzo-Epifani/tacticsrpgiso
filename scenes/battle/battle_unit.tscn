@@ -1,51 +1,69 @@
-[gd_scene load_steps=16 format=3 uid="uid://b4nmce3u4p3wl"]
+[gd_scene load_steps=16 format=3 uid="uid://b422lvsp0j5gy"]
 
-[ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_2ap14"]
-[ext_resource type="Texture2D" uid="uid://cqxrbfjg6ww1e" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_lni7h"]
+[ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
+[ext_resource type="Texture2D" uid="uid://cqxrbfjg6ww1e" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
 
-[sub_resource type="GDScript" id="GDScript_cl2eo"]
+[sub_resource type="GDScript" id="GDScript_dnbi4"]
 script/source = "extends Node
-@onready var battle_data = $BattleData  # Riferimento diretto al nodo BattleData
-@onready var char2d = $Character2D  # Riferimento diretto al nodo BattleData
-@onready var sprite = $Character2D/Sprite2D  # Riferimento diretto al nodo BattleData
-@onready var char_data: Dictionary
+@onready var soft_stat 
+@onready var orient 
+@onready var position 
+@onready var meta 
+@onready var equip 
+@onready var chosen_skills 
+@onready var char2d = $BattleUnit2D  
+@onready var sprite = $BattleUnit2D/Sprite2D  # Riferimento diretto al nodo BattleData
 @onready var portrait
-
+@onready var team
+@onready var id #AUTOGENERATE FOR ENEMIES
+@onready var party_member
 # Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	var class_
-	var race
-	if char_data.get(\"class_\",false) and char_data.get(\"race\",false):
-		class_ = char_data['class_']
-		race = char_data['race']
+
+func initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _orient=Global.orient.SOUTH, _team=Global.team.ENEMY):
+	soft_stat = _soft_stat
+	soft_stat['act_hp'] = soft_stat['hp']
+	position = _position
+	meta = _meta
+	chosen_skills = _chosen_skills
+	equip = _equip
+	team = _team
+	orient = _orient
+	portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
+	
+func from_party_member(character_node, _position, _orient=Global.orient.SOUTH):
+	party_member = character_node
+	var c_n = character_node
+	position = _position
+	orient = _orient
+	
+	meta = c_n.meta
+	soft_stat = c_n.stats
+	chosen_skills = c_n.chosen_skills
+	equip = c_n.equip
+	id=c_n.id
+	
+	if !c_n.get('portrait',false):
+		portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
 	else:
-		race=\"bangaa\"
-		class_=\"gladiator\"
-	portrait = \"res://assets/pg/races/{race}/{class}/portrait.png\".format({\"race\": race,\"class\":class_})
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+		portrait = c_n['portrait']
+	team = Global.team.MY
+	soft_stat['act_hp'] = soft_stat['hp']
+	
 "
 
-[sub_resource type="GDScript" id="GDScript_fiomt"]
+[sub_resource type="GDScript" id="GDScript_0jybh"]
 script/source = "extends Node
-@onready var anim_node = $Sprite2D/AnimationPlayer
+@onready var an_player = $Sprite2D/AnimationPlayer
 @onready var sprite = $Sprite2D  # Assicurati che il percorso sia corretto
+@onready var portrait: String =\"\"
 @onready var spritesheet_path: String=\"\"
-@onready var race: String=\"\"
-@onready var class_: String=\"\"
-@onready var meta={}
-@onready var portrait=\"\"
 
 func _ready():
-	var char_data=get_parent().char_data
-	var world_xy = Global.g2w(char_data[\"coord\"].x,char_data[\"coord\"].y)
-	if char_data.get(\"class_\",false) and char_data.get(\"race\",false):
-		class_ = char_data['class_']
-		race = char_data['race']
-	else:
+	var position = get_parent().position
+	var class_ = get_parent().meta['class_']
+	var race = get_parent().meta['race']
+	var world_xy = Global.g2w(position.x,position.y)
+	if !class_ or !race:
 		race=\"bangaa\"
 		class_=\"gladiator\"
 	sprite.position = Vector2i(world_xy[0], world_xy[1])  
@@ -56,7 +74,10 @@ func _ready():
 	#sprite.visible=true
 	#playy(\"walk\")
 
-func playy(anim_name, orient = Global.orient.SOUTH):
+func playy(anim_name):
+	var orient = get_parent().orient
+	if !orient:
+		orient = Global.orient.SOUTH
 	match orient:
 		Global.orient.EAST:
 			sprite.flip_h=true
@@ -69,7 +90,7 @@ func playy(anim_name, orient = Global.orient.SOUTH):
 			sprite.flip_h=false
 			anim_name=anim_name+\"_b\"
 
-	anim_node.play(anim_name)  # Avvia l'animazione
+	an_player.play(anim_name)  # Avvia l'animazione
 func show():
 	sprite.visible=true
 	
@@ -78,8 +99,8 @@ func hide():
 	
 "
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_8jhhk"]
-shader = ExtResource("1_2ap14")
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_7vs7s"]
+shader = ExtResource("1_uxqqv")
 shader_parameter/color = Color(0, 0, 1, 1)
 shader_parameter/width = 0.0
 shader_parameter/pattern = 0
@@ -382,21 +403,21 @@ _data = {
 "walk_b": SubResource("Animation_exqm5")
 }
 
-[node name="CharacterNode" type="Node"]
-script = SubResource("GDScript_cl2eo")
+[node name="BattleUnit" type="Node"]
+script = SubResource("GDScript_dnbi4")
 
-[node name="Character2D" type="Node2D" parent="."]
-script = SubResource("GDScript_fiomt")
+[node name="BattleUnit2D" type="Node2D" parent="."]
+script = SubResource("GDScript_0jybh")
 
-[node name="Sprite2D" type="Sprite2D" parent="Character2D"]
-material = SubResource("ShaderMaterial_8jhhk")
-texture = ExtResource("2_lni7h")
+[node name="Sprite2D" type="Sprite2D" parent="BattleUnit2D"]
+material = SubResource("ShaderMaterial_7vs7s")
+texture = ExtResource("2_dm436")
 hframes = 32
 vframes = 32
 frame = 1
 region_filter_clip_enabled = true
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="Character2D/Sprite2D"]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="BattleUnit2D/Sprite2D"]
 libraries = {
 "": SubResource("AnimationLibrary_yaaty")
 }
