@@ -84,3 +84,7 @@ func lock():
 	
 func unlock():
 	locked=false
+	
+func relocate(position:Vector2i):
+	cursor_position=position
+	update_cursor_position()

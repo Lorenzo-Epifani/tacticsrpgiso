@@ -1,7 +1,7 @@
 [gd_scene load_steps=16 format=3 uid="uid://b422lvsp0j5gy"]
 
 [ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
-[ext_resource type="Texture2D" uid="uid://cqxrbfjg6ww1e" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
+[ext_resource type="Texture2D" uid="uid://cqga3121e3gsi" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
 
 [sub_resource type="GDScript" id="GDScript_dnbi4"]
 script/source = "extends Node
@@ -28,6 +28,7 @@ func initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _ori
 	equip = _equip
 	team = _team
 	orient = _orient
+	id=Global.uuids()
 	portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
 	
 func from_party_member(character_node, _position, _orient=Global.orient.SOUTH):

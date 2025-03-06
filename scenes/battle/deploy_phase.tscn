@@ -8,7 +8,18 @@ script/source = "extends Node
 var depl_tiles = [ Vector2i(3,4),Vector2i(4,4),Vector2i(4,3),Vector2i(3,3)] # LO PRENDI DALLA CONFIG DELLA BATTAGLçIA
 var party = GameSession.data['party']
 # Called when the node enters the scene tree for the first time.
+
 func _ready() -> void:
+	update_deployable_datagrid()
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+
+
+func update_deploy_info(cursor_content):
+	var deploy_info_ui = find_child(\"DeployHandler\", true, false)
+	deploy_info_ui.update_deploy_info()
+	update_deployable_datagrid()
+
+func update_deployable_datagrid():
 	var data_grid = get_parent().get_parent().get_node(\"DataGrid\")  # Assicurati che il nome sia corretto
 	for loc in depl_tiles:
 		if data_grid.grid_data.get(loc,null)==null:
@@ -23,11 +34,6 @@ func _ready() -> void:
 	
 	var h_layer = get_parent().get_parent().get_node(\"HLayer\")
 	h_layer.reload_tiles()
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func update_deploy_info(cursor_content):
-	var deploy_info_ui = find_child(\"DeployHandler\", true, false)
-	#deploy_info_ui.update_deploy_info(cursor_content)
-	deploy_info_ui.update_deploy_info()
 	
 "
 
@@ -35,57 +41,125 @@ func update_deploy_info(cursor_content):
 script/source = "extends Control
 
 @onready var deploy_ui = $DeployUIContainer
-enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY}
-# Called when the node enters the scene tree for the first time.
-var hover_deploy=false
+enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY_FREE, HOVER_DEPLOY_BUSY}
+var stringstate = [\"FREE\", \"DEPLOYING\", \"BEGIN_ALERT\", \"HOVER_DEPLOY_FREE\", \"HOVER_DEPLOY_BUSY\"]
+var current_state = STATE.FREE
 var deploy_index=0
-var deploying = false
-var begin_battle_alert = false
 var party_deployable = GameSession.data['party'].duplicate(true)
 var party_deployed = []
+var BN = Global.battle_nodes()
 var batte_unit_scene = preload(\"res://scenes/battle/battle_unit.tscn\")  # Carica la scena del personaggio
 
 
 func deploy_member(unit,location):
-	var uc = get_node(\"/root/Game/EventContainer/BaseFight/DataGrid/UnitsContainer\")
+	deploy_ui.hide()
 	var battle_unit = batte_unit_scene.instantiate()
-	battle_unit.from_party_member(party_deployable[deploy_index], location)
-	deploying = true
-	var base_battle_ui = get_node(\"/root/Game/EventContainer/BaseFight/BattleUI\")
+	var uc = BN.get_unit_container()	
+	battle_unit.from_party_member(unit, location)
+	var base_battle_ui = BN.get_base_battle_ui()
 	base_battle_ui.hide_()
 	battle_unit['team']=Global.team.MY
 	uc.add(battle_unit)
-	reload_party(deploy_index)
-	update_deploy_info()
+	var cursor = BN.get_batte_cursor()
+	cursor.update_cursor_position()
 
+func confirm_deploy():
+	var base_battle_ui = BN.get_base_battle_ui()
+	base_battle_ui.show_()
+	update_deploy_info()
 	
-func reload_party(index=null,action=\"deploy\"):
-	match action:
-		\"deploy\":
-			party_deployed.append({\"el\":party_deployable[index],\"i\":index})
-			#party_deployable[deploy_index]['deployed']=true
-			party_deployable.remove_at(index)
-		\"undeploy\":
-			var toin=party_deployed.pop_back()
-			party_deployable.insert(toin['i'],toin['el'])
-			return toin
 
 
 func _ready() -> void:
 	pass # Replace with function body.
 
 func update_deploy_info():
-	var cursor = Global.get_batte_cursor()
+	var base_battle_ui = BN.get_base_battle_ui()
+
+	var cursor = BN.get_batte_cursor()
 	var cursor_content = cursor.cursor_content
-	if cursor_content.get(\"deployable\",false) and !deploying:
-		hover_deploy=true
-		deploy_ui.show(party_deployable[deploy_index])
+	if cursor_content.get(\"deployable\",false):
+		if cursor_content.get(\"unit\",false):#SE VERO, HO DEPLOYATO!
+			current_state = STATE.HOVER_DEPLOY_BUSY
+			deploy_ui.hide()
+			base_battle_ui.show()
+		else:		
+			current_state = STATE.HOVER_DEPLOY_FREE
+			deploy_ui.show(party_deployable[deploy_index])
 	else:
+		current_state = STATE.FREE
 		deploy_ui.hide()
-		hover_deploy=false
 		
 #CONTROL HANDLER
+func _input(event):
+	print(stringstate[current_state])
+	#print( party_deployable[deploy_index])
+	if event is InputEventKey and event.pressed:
+		var cursor = BN.get_batte_cursor()
+		var state_key = [current_state, event.keycode]
+		match state_key:
+			[STATE.HOVER_DEPLOY_FREE,KEY_TAB]:
+				deploy_ui.show(party_deployable[deploy_index])
+				if party_deployable.size()-1>deploy_index:deploy_index+=1
+				else: deploy_index=0
+			[STATE.HOVER_DEPLOY_FREE,KEY_Z]:
+					cursor.lock()
+					var deploying_unit = party_deployable[deploy_index].duplicate()
+					party_deployed.append({\"el\":deploying_unit,\"i\":deploy_index,\"p\":cursor.cursor_position})
+					party_deployable.remove_at(deploy_index)
+					deploy_member(deploying_unit,cursor.cursor_position)
+					deploy_index=0
+					current_state = STATE.DEPLOYING
+			[STATE.HOVER_DEPLOY_FREE, KEY_X], [STATE.HOVER_DEPLOY_BUSY, KEY_X],[STATE.FREE, KEY_X]:
+				if party_deployed.size()>0:
+					deploy_ui.hide()
+					var deploying_unit = party_deployed[-1]
+					cursor.relocate(deploying_unit['p'])
+					cursor.lock()
+					var base_battle_ui = BN.get_base_battle_ui()
+					base_battle_ui.hide_()					
+					#deploy_member(deploying_unit,cursor.cursor_position)
+					#deploy_index=0
+					current_state = STATE.DEPLOYING
+				  #RIMETTITI AL DEPLOY DELL ULTIMA UNITA
+	###################################################################
+	###################################################################
+			[STATE.HOVER_DEPLOY_BUSY,KEY_X]:
 
+				pass #RIMETTITI AL DEPLOY DI QUESTA UNITA
+			[STATE.HOVER_DEPLOY_BUSY,KEY_Z]:
+				pass #INFO, questa molto dopo
+		###################################################################
+	###################################################################
+			[STATE.DEPLOYING,KEY_Z]:
+				cursor.unlock()
+				confirm_deploy()
+			[STATE.DEPLOYING,KEY_X]:
+				undeploy_last()
+				cursor.unlock()
+				update_deploy_info()
+			[STATE.DEPLOYING,KEY_UP]:
+				cursor.cursor_content['unit'].orient=Global.orient.NORTH
+				cursor.cursor_content['unit'].char2d.playy(\"walk\")
+			[STATE.DEPLOYING,KEY_DOWN]:
+				cursor.cursor_content['unit'].orient=Global.orient.SOUTH
+				cursor.cursor_content['unit'].char2d.playy(\"walk\")
+			[STATE.DEPLOYING,KEY_RIGHT]:
+				cursor.cursor_content['unit'].orient=Global.orient.EAST
+				cursor.cursor_content['unit'].char2d.playy(\"walk\")
+			[STATE.DEPLOYING,KEY_LEFT]:
+				cursor.cursor_content['unit'].orient=Global.orient.WEST
+				cursor.cursor_content['unit'].char2d.playy(\"walk\")
+			
+				
+
+
+
+				
+	
+
+
+\"\"\"
 func __input(event):
 	var cursor = Global.get_batte_cursor()
 	if begin_battle_alert:
@@ -139,13 +213,19 @@ func __input(event):
 							if !cursor_content.get('unit',false):
 								deploy_member(party_deployable[deploy_index],cursor_content['location'])
 								deploy_index=0
-
+\"\"\"
 func undeploy_last():
-	var last_deployed = reload_party(null,\"undeploy\")['el']
-	for child in get_node(\"/root/Game/EventContainer/BaseFight/DataGrid/UnitsContainer\").get_children():
-		if child.get(\"id\")==last_deployed.id: #PER ID!!!! UNSAFE
+	var last_deployed = party_deployed.pop_back()
+	party_deployable.insert(last_deployed['i'],last_deployed['el'])
+	var uc = BN.get_unit_container()
+	var cursor=BN.get_batte_cursor()
+	for child in uc.get_children():
+		if child.get(\"id\")==last_deployed['el'].id: #PER ID!!!! UNSAFE
 			child.queue_free()
-			get_node(\"/root/Game/EventContainer/BaseFight/DataGrid\").build_grid_data()
+			child=null
+			uc.remove(cursor.cursor_position)
+			BN.get_data_grid().build_grid_data()
+			cursor.update_cursor_position()
 			break
 						
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -211,3 +291,5 @@ offset_top = 300.0
 offset_right = 750.0
 offset_bottom = 600.0
 expand_mode = 1
+
+[node name="Node" type="Node" parent="DeployHandler"]

@@ -49,11 +49,23 @@ func generate_pg(_race=null,_class=null):
 func rc_2_portrait(race,class_):
 	var portrait = "res://assets/pg/races/{race}/{class}/portrait.png".format({"race": race,"class":class_})
 	return portrait
+
+func battle_nodes():
+	var target_node = get_node("/root/Game/EventContainer/BaseFight/FightGlobal")
+	return target_node
 	
-func get_batte_cursor():
-	var cursor = get_node("/root/Game/EventContainer/BaseFight/CursorNode2D")
-	return cursor
 	
-func get_datagrid():
-	var data_grid = get_node("/root/Game/EventContainer/BaseFight/DataGrid")
-	return data_grid
+func uuids() -> String:
+	var hex_chars = "0123456789abcdef"
+	var template = "yxxx-yxxx"
+	var uuid = ""
+	
+	for i in template:
+		if i == "x":
+			uuid += hex_chars[randi() % 16]
+		elif i == "y":
+			uuid += hex_chars[(randi() % 4) + 8]  # 'y' può essere 8, 9, A o B
+		else:
+			uuid += i
+	
+	return uuid
