@@ -49,7 +49,10 @@ func load_all_data():
 			for cell in data[tab_dict['name']][rowind]:
 				if cell in tab_dict["json_col"]:
 					data[tab_dict['name']][rowind][cell]=JSON.parse_string(data[tab_dict['name']][rowind][cell])
-				
+	var udcparty=[]
+	for el in data['party']:
+		udcparty.append(unit_dc.from_sql(el))
+	data['party']=udcparty
 	print("✅ GameData di gioco esposto su GameSession.data !")
 
 func load_game(savefile_name):

@@ -1,6 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://c5jdsdlt1palp"]
+[gd_scene load_steps=16 format=3 uid="uid://c5jdsdlt1palp"]
 
+[ext_resource type="Texture2D" uid="uid://dcs81ch366ct8" path="res://assets/ui/panel.png" id="2_ck4hb"]
 [ext_resource type="Texture2D" uid="uid://8vt7rvr5qkt7" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
+[ext_resource type="Texture2D" uid="uid://ckxrl8pcml1u8" path="res://assets/ui/no_button.png" id="3_ev7r0"]
+[ext_resource type="Texture2D" uid="uid://cqd60rwghh3uw" path="res://assets/ui/yes_button.png" id="4_hu6vv"]
+[ext_resource type="FontFile" uid="uid://borvkhd2htirr" path="res://assets/ui/font.ttf" id="5_wrljb"]
 
 [sub_resource type="GDScript" id="GDScript_515iq"]
 script/source = "extends Node
@@ -41,6 +45,7 @@ func update_deployable_datagrid():
 script/source = "extends Control
 
 @onready var deploy_ui = $DeployUIContainer
+@onready var start_battle = $StartBattle
 enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY_FREE, HOVER_DEPLOY_BUSY}
 var stringstate = [\"FREE\", \"DEPLOYING\", \"BEGIN_ALERT\", \"HOVER_DEPLOY_FREE\", \"HOVER_DEPLOY_BUSY\"]
 var current_state = STATE.FREE
@@ -52,15 +57,15 @@ var batte_unit_scene = preload(\"res://scenes/battle/battle_unit.tscn\")  # Cari
 
 
 func deploy_member(unit,location):
-	deploy_ui.hide()
+	deploy_ui._hide()
 	var battle_unit = batte_unit_scene.instantiate()
 	var uc = BN.get_unit_container()	
-	battle_unit.from_party_member(unit, location)
+	battle_unit.from_dataclass(unit, location)
 	var base_battle_ui = BN.get_base_battle_ui()
 	base_battle_ui.hide_()
 	battle_unit['team']=Global.team.MY
 	uc.add(battle_unit)
-	var cursor = BN.get_batte_cursor()
+	var cursor = BN.get_battle_cursor()
 	cursor.update_cursor_position()
 
 func confirm_deploy():
@@ -69,71 +74,98 @@ func confirm_deploy():
 	update_deploy_info()
 	
 
-
-func _ready() -> void:
-	pass # Replace with function body.
-
 func update_deploy_info():
-	var base_battle_ui = BN.get_base_battle_ui()
 
-	var cursor = BN.get_batte_cursor()
+	var base_battle_ui = BN.get_base_battle_ui()
+	var cursor = BN.get_battle_cursor()
+	
+	if current_state==STATE.BEGIN_ALERT:
+		base_battle_ui.hide()
+		deploy_ui._hide()
+		start_battle.ask()
+		return
 	var cursor_content = cursor.cursor_content
 	if cursor_content.get(\"deployable\",false):
 		if cursor_content.get(\"unit\",false):#SE VERO, HO DEPLOYATO!
 			current_state = STATE.HOVER_DEPLOY_BUSY
-			deploy_ui.hide()
-			base_battle_ui.show()
 		else:		
 			current_state = STATE.HOVER_DEPLOY_FREE
-			deploy_ui.show(party_deployable[deploy_index])
 	else:
 		current_state = STATE.FREE
-		deploy_ui.hide()
+
+	match current_state:
+		STATE.FREE:
+			deploy_ui._hide()
+			base_battle_ui.show()
+		STATE.HOVER_DEPLOY_FREE:
+			if party_deployable.size()>0:
+				deploy_ui._show(party_deployable[deploy_index])
+			else:
+				deploy_ui._show_empty_party()
+		STATE.HOVER_DEPLOY_BUSY:
+			deploy_ui._hide()
+			base_battle_ui.show()
+		STATE.DEPLOYING:
+			deploy_ui._hide()
+			base_battle_ui.hide()
+			
 		
 #CONTROL HANDLER
 func _input(event):
 	print(stringstate[current_state])
 	#print( party_deployable[deploy_index])
 	if event is InputEventKey and event.pressed:
-		var cursor = BN.get_batte_cursor()
+		var cursor = BN.get_battle_cursor()
 		var state_key = [current_state, event.keycode]
+		var base_battle_ui = BN.get_base_battle_ui()
+	
 		match state_key:
+			[STATE.HOVER_DEPLOY_FREE, KEY_ENTER], [STATE.HOVER_DEPLOY_BUSY, KEY_ENTER], [STATE.FREE, KEY_ENTER]:
+				current_state = STATE.BEGIN_ALERT
+				update_deploy_info()
 			[STATE.HOVER_DEPLOY_FREE,KEY_TAB]:
-				deploy_ui.show(party_deployable[deploy_index])
-				if party_deployable.size()-1>deploy_index:deploy_index+=1
-				else: deploy_index=0
+				if party_deployable.size()>0:
+					deploy_ui._show(party_deployable[deploy_index])
+					if party_deployable.size()-1>deploy_index:deploy_index+=1
+					else: deploy_index=0
 			[STATE.HOVER_DEPLOY_FREE,KEY_Z]:
 					cursor.lock()
-					var deploying_unit = party_deployable[deploy_index].duplicate()
-					party_deployed.append({\"el\":deploying_unit,\"i\":deploy_index,\"p\":cursor.cursor_position})
-					party_deployable.remove_at(deploy_index)
-					deploy_member(deploying_unit,cursor.cursor_position)
-					deploy_index=0
-					current_state = STATE.DEPLOYING
+					if party_deployable.size()>0:
+						var deploying_unit = party_deployable[deploy_index].deepcopy()
+						party_deployed.append({\"el\":deploying_unit,\"i\":deploy_index,\"p\":cursor.cursor_position})
+						party_deployable.remove_at(deploy_index)
+						deploy_member(deploying_unit,cursor.cursor_position)
+						deploy_index=0
+						
+						current_state = STATE.DEPLOYING
+						deploy_ui._hide()
+						base_battle_ui.hide()
+						
 			[STATE.HOVER_DEPLOY_FREE, KEY_X], [STATE.HOVER_DEPLOY_BUSY, KEY_X],[STATE.FREE, KEY_X]:
 				if party_deployed.size()>0:
-					deploy_ui.hide()
+					deploy_ui._hide()
 					var deploying_unit = party_deployed[-1]
 					cursor.relocate(deploying_unit['p'])
 					cursor.lock()
-					var base_battle_ui = BN.get_base_battle_ui()
-					base_battle_ui.hide_()					
 					#deploy_member(deploying_unit,cursor.cursor_position)
 					#deploy_index=0
 					current_state = STATE.DEPLOYING
-				  #RIMETTITI AL DEPLOY DELL ULTIMA UNITA
+					deploy_ui._hide()
+					base_battle_ui.hide()		
+					
 	###################################################################
 	###################################################################
-			[STATE.HOVER_DEPLOY_BUSY,KEY_X]:
-
-				pass #RIMETTITI AL DEPLOY DI QUESTA UNITA
+			#[STATE.HOVER_DEPLOY_BUSY,KEY_X]:
+			#	pass # TROVA KEY PER MOSTRARE UINFO UNITA
 			[STATE.HOVER_DEPLOY_BUSY,KEY_Z]:
-				pass #INFO, questa molto dopo
+				pass #INFO, RE-DEPLOY QUESTA
 		###################################################################
 	###################################################################
 			[STATE.DEPLOYING,KEY_Z]:
 				cursor.unlock()
 				confirm_deploy()
+				if party_deployable.size()==0:
+					current_state=STATE.BEGIN_ALERT
 			[STATE.DEPLOYING,KEY_X]:
 				undeploy_last()
 				cursor.unlock()
@@ -151,74 +183,12 @@ func _input(event):
 				cursor.cursor_content['unit'].orient=Global.orient.WEST
 				cursor.cursor_content['unit'].char2d.playy(\"walk\")
 			
-				
 
-
-
-				
-	
-
-
-\"\"\"
-func __input(event):
-	var cursor = Global.get_batte_cursor()
-	if begin_battle_alert:
-		print(\"BEGIN BATTLE?\")
-		if event is InputEventKey and event.pressed:
-			match event.keycode:
-				KEY_X:
-					begin_battle_alert=false
-					cursor.unlock()
-					undeploy_last()
-				KEY_Z:
-					print(\"BATTLE START\")
-	else:
-		if cursor:
-			var cursor_content = cursor.cursor_content
-			if deploying:
-				cursor.lock()
-				#disable cursor and lock camera	
-				if event is InputEventKey and event.pressed:
-					match event.keycode:
-						KEY_Z:
-							#TODO
-							cursor.unlock()	
-							deploying=false	
-							var base_battle_ui = get_node(\"/root/Game/EventContainer/BaseFight/BattleUI\")
-							base_battle_ui.show_()
-							if party_deployable.size()==0: #TODO. OR EMPTY TILES = 0
-								begin_battle_alert=true
-								cursor.lock()
-						KEY_X:
-							#TODO UNDEPLOY undeploy_last()
-							deploying=false
-							cursor.unlock()	
-							undeploy_last()	
-						KEY_RIGHT:
-							cursor_content['unit'].orient=Global.orient.EAST
-						KEY_UP:
-							cursor_content['unit'].orient=Global.orient.NORTH
-						KEY_DOWN:
-							cursor_content['unit'].orient=Global.orient.SOUTH
-						KEY_LEFT:
-							cursor_content['unit'].orient=Global.orient.WEST
-					cursor_content['unit'].char2d.playy(\"walk\")
-			if hover_deploy and !deploying:
-				if event is InputEventKey and event.pressed:
-					match event.keycode:
-						KEY_TAB:
-							if party_deployable.size()-1>deploy_index: deploy_index+=1
-							else: deploy_index=0
-						KEY_Z:
-							if !cursor_content.get('unit',false):
-								deploy_member(party_deployable[deploy_index],cursor_content['location'])
-								deploy_index=0
-\"\"\"
 func undeploy_last():
 	var last_deployed = party_deployed.pop_back()
 	party_deployable.insert(last_deployed['i'],last_deployed['el'])
 	var uc = BN.get_unit_container()
-	var cursor=BN.get_batte_cursor()
+	var cursor=BN.get_battle_cursor()
 	for child in uc.get_children():
 		if child.get(\"id\")==last_deployed['el'].id: #PER ID!!!! UNSAFE
 			child.queue_free()
@@ -232,31 +202,196 @@ func undeploy_last():
 "
 
 [sub_resource type="GDScript" id="GDScript_aox20"]
-script/source = "extends Node
+script/source = "extends Node2D
 
 @onready var texture_port = $TextureRect
-
+@onready var panel = $PanelContainer
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	pass # Replace with function body.
 
-func show(party_member):
+func _show(party_member):
 	var race=party_member['meta']['race']
 	var class_=party_member['meta']['class_']
 	texture_port.texture = load(Global.rc_2_portrait(race, class_))
 	texture_port.size = Vector2(300, 300)  # Imposta una dimensione esatta in pixel
-	texture_port.position = Vector2(430, 200)  # Posiziona la texture a (X=100, Y=200)
+	panel.size = Global.screen_frac(get_viewport_rect(),2,4) # Imposta una dimensione in funzione del viewport
+	texture_port.position = get_viewport_rect().size - texture_port.get_size()
+	panel.position = get_viewport_rect().size - panel.get_size()
 	propagate_call(\"set_visible\", [true])
 	
-func hide():
+func _hide():
 	propagate_call(\"set_visible\", [false])
-
+	
+func show_empty_party():
+	texture_port.texture=null
+	#TODO: WRITE EMPTY TEAM
+	propagate_call(\"set_visible\", [true])
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 "
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_na22p"]
 texture = ExtResource("2_ynkis")
 modulate_color = Color(1, 1, 1, 0.588235)
+
+[sub_resource type="GDScript" id="GDScript_ofmdn"]
+script/source = "extends Control
+
+@onready var choice_box = $PanelContainer
+@onready var yes_button = $PanelContainer/YesButton
+@onready var no_button = $PanelContainer/NoButton
+var BN = Global.battle_nodes()
+
+func _ready():
+	var _on_focus_entered = func(button):
+		button.modulate = Color(1.5, 1.5, 1.5)  # Schiarisce la texture
+
+
+	var _on_focus_exited = func (button):
+		button.modulate = Color(1, 1, 1)  # Schiarisce la texture
+	choice_box.visible = false  # Nasconde la scelta inizialmente
+		
+	var screen_size = get_viewport_rect().size
+	position = (screen_size-choice_box.size)/2
+	yes_button.pressed.connect(_on_yes_pressed)
+	no_button.pressed.connect(_on_no_pressed)
+	for btn in [yes_button,no_button]:
+		btn.focus_entered.connect(_on_focus_entered.bind(btn))
+		btn.focus_exited.connect(_on_focus_exited.bind(btn))
+		# Abilita il focus sui bottoni
+	#yes_button.focus_mode = Control.FOCUS_ALL
+	#no_button.focus_mode = Control.FOCUS_ALL
+
+	# Imposta la navigazione del focus
+	#yes_button.focus_neighbor_bottom = no_button.get_path()
+	#no_button.focus_neighbor_top = yes_button.get_path()
+
+	# Connessione segnali
+
+
+	# Imposta il focus iniziale
+	#yes_button.grab_focus()
+
+func ask():
+	var cursor = BN.get_battle_cursor()
+	cursor.lock()
+	propagate_call(\"set_visible\", [true])
+
+
+
+func show_choice():
+	choice_box.visible = true
+
+func _on_yes_pressed():
+	print(\"Battaglia iniziata!\")  # Qui metti la logica di avvio battaglia
+	choice_box.visible = false
+	var battle_label = get_parent().get_node(\"BattleStartLabel\")
+	battle_label.start_battle_animation()
+
+	#AGGIUNGI EVENTUALI ANIMAZONI CUSTOM TODO
+	
+func _on_no_pressed():
+	print(\"Battaglia annullata.\")
+	choice_box.visible = false
+	var deploy_handler = get_parent()
+	deploy_handler.current_state = deploy_handler.STATE.FREE
+	deploy_handler.update_deploy_info()
+	BN.get_battle_cursor().unlock()
+	
+	
+func _input(event):
+	if event is InputEventKey and event.pressed:
+		var deploy_handler = get_parent()
+		var cursor = BN.get_battle_cursor()
+		var state_key = [deploy_handler.current_state, event.keycode]
+		match state_key:
+			[deploy_handler.STATE.BEGIN_ALERT, KEY_ENTER]:
+				get_viewport().set_input_as_handled()
+			[deploy_handler.STATE.BEGIN_ALERT, KEY_Z]:
+				var focused_button = get_viewport().gui_get_focus_owner()
+				if focused_button is Button:
+					focused_button.emit_signal(\"pressed\")  # Esegue l'azione del bottone con focus
+			[deploy_handler.STATE.BEGIN_ALERT, KEY_LEFT]:
+				yes_button.grab_focus()
+			[deploy_handler.STATE.BEGIN_ALERT, KEY_RIGHT]:
+				no_button.grab_focus()
+
+
+
+			
+"
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_6n8a6"]
+texture = ExtResource("2_ck4hb")
+
+[sub_resource type="GDScript" id="GDScript_uatdb"]
+script/source = "extends Label  # Script attaccato al Label
+
+@onready var animation_player = $AnimationPlayer
+
+func _ready():
+	_create_battle_start_animation()
+	#start_battle_animation()  # Avvia subito per test
+func _create_battle_start_animation():
+	pivot_offset = size / 2
+
+	var anim_lib = AnimationLibrary.new()
+
+	var anim = Animation.new()
+	anim.length = 4.0  
+	
+	# Visibility track
+	var vis_track = anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(vis_track, \":visible\")
+	anim.track_insert_key(vis_track, 0.0, true)   # Mostra subito
+	anim.track_insert_key(vis_track, anim.length, false)  # Nascondi alla fine
+	
+	# rotation track
+	var track = anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(track, \":rotation_degrees\")  # \":\" -> proprietà della Label stessa
+	anim.track_insert_key(track, 0.0, 0.0)  # Inizio a 0°
+	anim.track_insert_key(track, 0.8, 1080.0)  # Fine a 360°
+	
+# --- Zoom (Scala) ---
+	var scale_track = anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(scale_track, \":scale\")
+	anim.track_insert_key(scale_track, 0.0, Vector2(1.0, 1.0))   # Normale
+	anim.track_insert_key(scale_track, 0.5, Vector2(2.5, 2.5))  # Zoom
+	anim.track_insert_key(scale_track, 1.0, Vector2(1.0, 1.0))  # Ritorna normale
+	anim.track_insert_key(scale_track, 1.25, Vector2(2.5, 2.5))  # Zoom
+	
+
+	# --- Lampeggio (colore bianco/nero su self_modulate) ---
+	var color_track = anim.add_track(Animation.TYPE_VALUE)
+	anim.track_set_path(color_track, \":self_modulate\")
+
+	anim.track_insert_key(color_track, 0.0, Color.WHITE)  # Bianco
+	anim.track_insert_key(color_track, 0.25, Color.BLACK)  # Nero
+	anim.track_insert_key(color_track, 0.5, Color.WHITE)  # Bianco
+	anim.track_insert_key(color_track, 0.75, Color.BLACK)  # Nero
+	anim.track_insert_key(color_track, 1.0, Color.WHITE)  # Bianco
+	# Aggiungi animazione all'AnimationPlayer
+	anim_lib.add_animation(\"battle_start\", anim)
+
+	animation_player.add_animation_library(\"bag_anim\", anim_lib)
+
+func start_battle_animation():
+	animation_player.play(\"bag_anim/battle_start\")
+	
+"
+
+[sub_resource type="Animation" id="Animation_hxfvy"]
+resource_name = "battle_start"
+length = 2.0
+
+[sub_resource type="Animation" id="Animation_5j42r"]
+length = 0.001
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_8uwx0"]
+_data = {
+"RESET": SubResource("Animation_5j42r"),
+"battle_start": SubResource("Animation_hxfvy")
+}
 
 [node name="DeployPhase" type="CanvasLayer"]
 script = SubResource("GDScript_515iq")
@@ -266,13 +401,12 @@ layout_mode = 3
 anchors_preset = 0
 script = SubResource("GDScript_jxbrb")
 
-[node name="DeployUIContainer" type="Node" parent="DeployHandler"]
+[node name="DeployUIContainer" type="Node2D" parent="DeployHandler"]
 script = SubResource("GDScript_aox20")
 
 [node name="PanelContainer" type="PanelContainer" parent="DeployHandler/DeployUIContainer"]
 visible = false
 z_as_relative = false
-custom_minimum_size = Vector2(300, 300)
 offset_left = 250.0
 offset_top = 300.0
 offset_right = 750.0
@@ -292,4 +426,82 @@ offset_right = 750.0
 offset_bottom = 600.0
 expand_mode = 1
 
-[node name="Node" type="Node" parent="DeployHandler"]
+[node name="StartBattle" type="Control" parent="DeployHandler"]
+layout_mode = 3
+anchors_preset = 0
+script = SubResource("GDScript_ofmdn")
+
+[node name="PanelContainer" type="Panel" parent="DeployHandler/StartBattle"]
+layout_direction = 1
+layout_mode = 0
+offset_right = 426.0
+offset_bottom = 220.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_6n8a6")
+
+[node name="NoButton" type="Button" parent="DeployHandler/StartBattle/PanelContainer"]
+layout_mode = 2
+offset_left = 312.0
+offset_top = 160.0
+offset_right = 450.0
+offset_bottom = 298.0
+scale = Vector2(0.4, 0.4)
+theme_override_icons/icon = ExtResource("3_ev7r0")
+
+[node name="NoLabel" type="Label" parent="DeployHandler/StartBattle/PanelContainer/NoButton"]
+layout_mode = 0
+offset_left = 35.0
+offset_top = -45.0
+offset_right = 67.0
+offset_bottom = -22.0
+scale = Vector2(2, 2)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("5_wrljb")
+text = "NO"
+
+[node name="YesButton" type="Button" parent="DeployHandler/StartBattle/PanelContainer"]
+layout_mode = 2
+offset_left = 59.0
+offset_top = 160.0
+offset_right = 197.0
+offset_bottom = 298.0
+scale = Vector2(0.4, 0.4)
+size_flags_horizontal = 4
+size_flags_vertical = 0
+theme_override_icons/icon = ExtResource("4_hu6vv")
+
+[node name="YesLabel" type="Label" parent="DeployHandler/StartBattle/PanelContainer/YesButton"]
+layout_mode = 0
+offset_left = 17.5
+offset_top = -45.0
+offset_right = 67.5
+offset_bottom = -22.0
+scale = Vector2(2, 2)
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("5_wrljb")
+text = "YES"
+
+[node name="StartLabel" type="Label" parent="DeployHandler/StartBattle/PanelContainer"]
+layout_mode = 0
+offset_left = 114.0
+offset_top = 20.0
+offset_right = 308.0
+offset_bottom = 43.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("5_wrljb")
+text = "Ready fot battle?"
+
+[node name="BattleStartLabel" type="Label" parent="DeployHandler"]
+visible = false
+layout_mode = 0
+offset_left = 404.0
+offset_top = 319.0
+offset_right = 594.0
+offset_bottom = 342.0
+theme_override_fonts/font = ExtResource("5_wrljb")
+text = "BATTLE START!"
+script = SubResource("GDScript_uatdb")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="DeployHandler/BattleStartLabel"]
+libraries = {
+"": SubResource("AnimationLibrary_8uwx0")
+}

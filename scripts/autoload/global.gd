@@ -69,3 +69,6 @@ func uuids() -> String:
 			uuid += i
 	
 	return uuid
+
+func screen_frac(viewport,xratio: float, yratio: float) -> Vector2:
+	return Vector2(viewport.size.x / xratio, viewport.size.y / yratio)

@@ -5,6 +5,8 @@
 
 [sub_resource type="GDScript" id="GDScript_dnbi4"]
 script/source = "extends Node
+
+@onready var BASE_UNIT 
 @onready var soft_stat 
 @onready var orient 
 @onready var position 
@@ -19,7 +21,7 @@ script/source = "extends Node
 @onready var party_member
 # Called when the node enters the scene tree for the first time.
 
-func initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _orient=Global.orient.SOUTH, _team=Global.team.ENEMY):
+func __initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _orient=Global.orient.SOUTH, _team=Global.team.ENEMY):
 	soft_stat = _soft_stat
 	soft_stat['act_hp'] = soft_stat['hp']
 	position = _position
@@ -31,7 +33,7 @@ func initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _ori
 	id=Global.uuids()
 	portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
 	
-func from_party_member(character_node, _position, _orient=Global.orient.SOUTH):
+func __from_party_member(character_node, _position, _orient=Global.orient.SOUTH):
 	party_member = character_node
 	var c_n = character_node
 	position = _position
@@ -43,13 +45,30 @@ func from_party_member(character_node, _position, _orient=Global.orient.SOUTH):
 	equip = c_n.equip
 	id=c_n.id
 	
-	if !c_n.get('portrait',false):
+	if c_n.portrait==\"\":
 		portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
 	else:
 		portrait = c_n['portrait']
 	team = Global.team.MY
 	soft_stat['act_hp'] = soft_stat['hp']
 	
+func from_dataclass(unit_dataclass, _position, _team = Global.team.MY, _orient=Global.orient.SOUTH):
+	BASE_UNIT = unit_dataclass.duplicate()
+	var udc = unit_dataclass
+	position = _position
+	orient = _orient
+	meta = udc.meta #name,class,race
+	soft_stat = udc.stats
+	chosen_skills = udc.chosen_skills
+	equip = udc.equip
+	id=udc.id
+	
+	if not udc.portrait:
+		portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
+	else:
+		portrait = udc['portrait']
+	team = _team
+	soft_stat['act_hp'] = soft_stat['hp']
 "
 
 [sub_resource type="GDScript" id="GDScript_0jybh"]

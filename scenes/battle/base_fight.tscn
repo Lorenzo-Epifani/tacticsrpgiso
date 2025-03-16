@@ -82,7 +82,7 @@ func get_data_grid():
 	var target_node = get_parent().find_child(\"DataGrid\")
 	return target_node
 
-func get_batte_cursor():
+func get_battle_cursor():
 	var cursor = get_parent().find_child(\"CursorNode2D\")
 	return cursor
 	
@@ -271,10 +271,10 @@ var data_dict = {}
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	var battle_data = find_parent(\"BaseFight\").battle_data  # Ottiene il valore del genitore all'avvio
-	var characters = battle_data.units.enemies
+	var characters = battle_data.units
 	for el in characters:  # Creiamo 3 istanze
 		var battle_unit_instance = batte_unit_scene.instantiate()
-		battle_unit_instance.initialize(el['soft_stat'],el['position'],el['meta'])  # Passiamo la cartella dell'animazione
+		battle_unit_instance.from_dataclass(el['unit_instance'],el['position'],el['team'])  # Passiamo la cartella dell'animazione
 		#print(\"CREATO:\" + str(char) + \"COORD:\" + str(coord))
 		# Posizioniamo i personaggi in modo che non si sovrappongano
  

@@ -18,22 +18,18 @@ var battle_scene = load(\"res://scenes/battle/base_fight.tscn\")  # Carica la sc
 var event_queue=[
 {
 	\"type\":\"battle\",
-	\"units\":{
-		\"enemies\":[
+	\"units\":[
 			{
-				\"soft_stat\"={\"atk\":10,\"def\":10,\"hp\":10,\"spd\":10,\"lvl\":1,\"exp\":0},
+				\"unit_instance\" = unit_dc.dummy(1),
 				\"position\"=Vector2i(2,-2),
-				\"meta\"={\"race\":\"bangaa\",\"class_\":\"gladiator\",\"name_\":\"enemy1\"}
+				\"team\"=Global.team.ENEMY
 			},
 			{
-				\"soft_stat\"={\"atk\":110,\"def\":210,\"hp\":10,\"spd\":110,\"lvl\":11,\"exp\":0},
+				\"unit_instance\" = unit_dc.dummy(2),
 				\"position\"=Vector2i(2,-3),
-				\"meta\"={\"race\":\"nu_mou\",\"class_\":\"black_mage\",\"name_\":\"enemy2\"}
+				\"team\"=Global.team.ENEMY
 			}
-		],
-		\"allies\":[],
-		\"neutral\":[],
-	}
+	]
 }
 ]
 
