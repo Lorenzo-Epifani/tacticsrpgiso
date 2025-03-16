@@ -101,6 +101,7 @@ func update_deploy_info():
 			if party_deployable.size()>0:
 				deploy_ui._show(party_deployable[deploy_index])
 			else:
+				pass
 				deploy_ui._show_empty_party()
 		STATE.HOVER_DEPLOY_BUSY:
 			deploy_ui._hide()
@@ -223,7 +224,7 @@ func _show(party_member):
 func _hide():
 	propagate_call(\"set_visible\", [false])
 	
-func show_empty_party():
+func _show_empty_party():
 	texture_port.texture=null
 	#TODO: WRITE EMPTY TEAM
 	propagate_call(\"set_visible\", [true])
