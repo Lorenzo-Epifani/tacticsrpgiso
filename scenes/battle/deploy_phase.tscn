@@ -8,7 +8,7 @@
 
 [sub_resource type="GDScript" id="GDScript_515iq"]
 script/source = "extends Node
-
+var phase_data: Dictionary
 var depl_tiles = [ Vector2i(3,4),Vector2i(4,4),Vector2i(4,3),Vector2i(3,3)] # LO PRENDI DALLA CONFIG DELLA BATTAGLçIA
 var party = GameSession.data['party']
 # Called when the node enters the scene tree for the first time.
@@ -284,10 +284,16 @@ func show_choice():
 	choice_box.visible = true
 
 func _on_yes_pressed():
+	var cursor = BN.get_battle_cursor()
 	print(\"Battaglia iniziata!\")  # Qui metti la logica di avvio battaglia
 	choice_box.visible = false
 	var battle_label = get_parent().get_node(\"BattleStartLabel\")
-	battle_label.start_battle_animation()
+	await battle_label.start_battle_animation()
+	var phasecontainer =  get_parent().get_parent().get_parent()
+	print(phasecontainer.name)
+	phasecontainer.send_phase_signal(\"deploy_completed\",{\"TO\":\"DO\"})
+	cursor.unlock()
+
 
 	#AGGIUNGI EVENTUALI ANIMAZONI CUSTOM TODO
 	
@@ -378,15 +384,16 @@ func _create_battle_start_animation():
 
 func start_battle_animation():
 	animation_player.play(\"bag_anim/battle_start\")
+	await animation_player.animation_finished
 	
 "
+
+[sub_resource type="Animation" id="Animation_5j42r"]
+length = 0.001
 
 [sub_resource type="Animation" id="Animation_hxfvy"]
 resource_name = "battle_start"
 length = 2.0
-
-[sub_resource type="Animation" id="Animation_5j42r"]
-length = 0.001
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_8uwx0"]
 _data = {

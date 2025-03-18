@@ -3,6 +3,8 @@ extends Control
 @onready var panel = $PanelContainer
 @onready var name_label = $PanelContainer/Name
 @onready var hp_bar = $PanelContainer/HealthBar
+@onready var hp_num = $PanelContainer/HpNum
+@onready var level = $PanelContainer/Level
 
 func update_unit_info(unit_data):
 	var unit = unit_data['unit']
@@ -15,6 +17,10 @@ func update_unit_info(unit_data):
 		name_label.text=unit.meta['name']
 		name_label.scale=Vector2(1.7,1.7)
 		hp_bar.scale=Vector2(0.7,0.7)
+		
+		level.text="Lv. "+ str(unit.soft_stat["level"])
+		level.scale=Vector2i(2,2)
+		hp_num.text= str(unit.soft_stat['act_hp'])+" | "+ str(unit.soft_stat['hp'])
 		
 		hp_bar.max_value=unit['soft_stat']['hp']
 		hp_bar.min_value=0
@@ -31,11 +37,14 @@ func update_unit_info(unit_data):
 		
 		hp_bar.position.y = 1.5*panel.size.y/3
 		hp_bar.position.x = name_label.position.x
-		#name_label.position = get_viewport_rect().size - name_label.size
 		
+		hp_num.position.x = 1.2*hp_bar.position.x
+		hp_num.position.y =  1.06*hp_bar.position.y
+		#name_label.position = get_viewport_rect().size - name_label.size
 		panel.position = get_viewport_rect().size - panel.get_size()
 		sprite_display.flip_h=false
-
+		level.position.x=0.5*panel.size.x/10
+		level.position.y=0
 		if unit["team"]==Global.team.ENEMY: 
 			panel.position.x=0
 			
@@ -45,6 +54,11 @@ func update_unit_info(unit_data):
 			hp_bar.position.x = name_label.position.x
 			hp_bar.position.y = 1.5*panel.size.y/3
 			
+			hp_num.position.x = 1.06*hp_bar.position.x
+			hp_num.position.y = 1.06*hp_bar.position.y
+			
+			level.position.x=7*panel.size.x/10
+			level.position.y=0
 			sprite_display.position.x=0
 			sprite_display.flip_h=true
 		

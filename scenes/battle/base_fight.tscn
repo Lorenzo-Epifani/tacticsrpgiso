@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=4 uid="uid://bxvglqyw8cfte"]
+[gd_scene load_steps=20 format=4 uid="uid://bxvglqyw8cfte"]
 
 [ext_resource type="Texture2D" uid="uid://c6v3quk7fjkvc" path="res://assets/ground/base green.png" id="1_o1eh3"]
 [ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
@@ -25,13 +25,16 @@ const REWARDS_SCENE = preload(\"res://scenes/battle/reward_phase.tscn\")
 const DEPLOY_SCENE = preload(\"res://scenes/battle/deploy_phase.tscn\")
 
 func _ready():
-	print(ProjectSettings.globalize_path(\"res://\"))
-
-	print(\"phasecont READY\")
+#	print(ProjectSettings.globalize_path(\"res://\"))
+	phase_container.connect(\"deploy_completed\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+	phase_container.connect(\"battle_win\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+	phase_container.connect(\"battle_lost\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+	phase_container.connect(\"reward_taken\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+#	print(\"phasecont READY\")
 	data_grid.build_grid_data()
 	start_phase(current_phase)  # Avvia la prima fase
 
-func start_phase(phase: int):
+func start_phase(phase: int, phase_data={}):
 	\"\"\"Avvia la fase specificata della battaglia\"\"\"
 	if current_node:
 		current_node.queue_free()  # Rimuove il nodo precedente se esiste
@@ -42,14 +45,17 @@ func start_phase(phase: int):
 			current_node = DEPLOY_SCENE.instantiate()
 		BattlePhases.BATTLE:
 			current_node = BATTLE_SCENE.instantiate()
+			#current_node.setup_battle()
 		BattlePhases.REWARDS:
 			current_node = REWARDS_SCENE.instantiate()
+	
+	current_node.phase_data = phase_data
 
 	if current_node:
 		phase_container.add_child(current_node)  # Aggiunge il nodo della fase corrente
-		current_node.connect(\"phase_completed\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
+		
 
-func _on_phase_completed():
+func _on_phase_completed(phase_data):
 	\"\"\"Gestisce la transizione tra le fasi\"\"\"
 	if current_phase == BattlePhases.DEPLOY:
 		current_phase = BattlePhases.BATTLE
@@ -61,7 +67,7 @@ func _on_phase_completed():
 		# Puoi fare il cleanup qui
 		return
 	
-	start_phase(current_phase)  # Avvia la nuova fase
+	start_phase(current_phase,phase_data)  # Avvia la nuova fase
 "
 
 [sub_resource type="GDScript" id="GDScript_fasqg"]
@@ -357,6 +363,19 @@ func update_dict(terrain):
 	data_dict[Vector2i(grid_coord[0],grid_coord[1])] = terrain
 "
 
+[sub_resource type="GDScript" id="GDScript_p3l5b"]
+script/source = "extends Node
+
+signal deploy_completed
+signal battle_win
+signal battle_lost
+signal reward_taken
+
+func send_phase_signal(signal_string,phase_data):
+	phase_data['last_signal']=signal_string
+	emit_signal(signal_string,phase_data)
+"
+
 [node name="BaseFight" type="Node"]
 script = SubResource("GDScript_03ge3")
 
@@ -413,3 +432,4 @@ script = SubResource("GDScript_k81hd")
 script = SubResource("GDScript_nkgw7")
 
 [node name="PhaseContainer" type="Node" parent="."]
+script = SubResource("GDScript_p3l5b")

@@ -1,3 +1,190 @@
-[gd_scene format=3 uid="uid://bljmfu0b2ecug"]
+[gd_scene load_steps=7 format=3 uid="uid://bljmfu0b2ecug"]
+
+[sub_resource type="GDScript" id="GDScript_mkj42"]
+script/source = "extends Node
+var phase_data: Dictionary
+var BN = Global.battle_nodes()
+@onready var turn_queue = $TurnQueue
+@onready var bpui = $BattlePhaseUI
+#enum team { MY, ENEMY, ALLIED, NEUTRAL }
+
+func _ready() -> void:
+	setup_battle()
+	
+	
+func setup_battle():
+	var cursor = BN.get_battle_cursor()
+	cursor.update_cursor_position()
+	var base_battle_ui = BN.get_base_battle_ui()
+	base_battle_ui.show_()
+	turn_queue.initialize()
+"
+
+[sub_resource type="GDScript" id="GDScript_8g1m3"]
+script/source = "extends Node
+var BN = Global.battle_nodes()
+var turn_queue = []
+#enum team { MY, ENEMY, ALLIED, NEUTRAL }
+
+func initialize():
+	var uc_data = BN.get_unit_container().data_dict
+	for pos_key in uc_data:
+		if uc_data[pos_key].soft_stat[\"act_hp\"] > 0:  # Controlla se l'unità è ancora in vita
+			turn_queue.append({\"position\": pos_key, \"unit\": uc_data[pos_key]})
+	turn_queue.sort_custom(func(a, b): 
+		return a.unit.soft_stat.spd > b.unit.soft_stat.spd
+	)
+	print(\"TURN_QUEUE:::::->\")
+	var i=0
+	for element in turn_queue:
+		print(\"-----------------------\")
+		print(\"-----------------------\")
+		print(\"TURN: \",i)
+		print(\"NAME: \",element.unit.meta.name)
+		print(\"SPEED: \",element.unit.soft_stat.spd)
+		print(\"TEAM: \",element.unit.team)
+
+
+		
+
+		
+	if turn_queue[0].unit.team==Global.team.ENEMY:
+		get_tree().root.set_disable_input(true)
+		#DO SOMETHING
+		var enemy_AI=get_parent().get_node(\"EnemyAI\")
+		enemy_AI.perform_turn()
+		get_tree().root.set_disable_input(false)
+		
+
+func reload_queue():
+	# Rimuove tutte le unità con hp <= 0
+	turn_queue = turn_queue.filter(func(entry): return entry.unit.soft_stat[\"act_hp\"] > 0)
+	# Se la queue ha almeno un elemento, sposta il primo in fondo
+	if turn_queue.size() > 1:
+		var first_element = turn_queue.pop_front() # Rimuove il primo elemento
+		turn_queue.append(first_element) # Lo aggiunge in fondo
+		if turn_queue[0].unit.team==Global.team.ENEMY:
+			get_tree().root.set_disable_input(true)
+			#DO SOMETHING
+			var enemy_AI=get_parent().get_node(\"EnemyAI\")
+			enemy_AI.perform_turn()
+			get_tree().root.set_disable_input(false)
+	
+	
+"
+
+[sub_resource type="GDScript" id="GDScript_7laoh"]
+script/source = "extends Node
+#enum team { MY, ENEMY, ALLIED, NEUTRAL }
+
+func perform_turn():
+	var turn_queue_node = get_parent().get_node(\"TurnQueue\")
+	var enemy_pos_unit = turn_queue_node.turn_queue[0]
+	print(\"TURNO DEL NEMICO:\")
+	print(enemy_pos_unit.position)
+	print(enemy_pos_unit.unit)
+	turn_queue_node.reload_queue()
+"
+
+[sub_resource type="GDScript" id="GDScript_msym8"]
+script/source = "extends Control
+
+@onready var popup_menu = $FightMenu
+
+func _ready():
+	
+	popup_menu.position.x=0
+	popup_menu.position.y=get_viewport_rect().size.y + popup_menu.size.y
+	popup_menu.add_item(\"Attack\", 0)
+	popup_menu.add_item(\"Magic\", 1)
+	popup_menu.add_submenu_item(\"Items\", \"items_menu\") # menu cascata
+	popup_menu.add_item(\"Wait\", 2)
+
+	var items_menu = PopupMenu.new()
+	popup_menu.add_child(items_menu)
+	items_menu.name = \"items_menu\"
+	items_menu.add_item(\"Potion\", 3)
+	items_menu.add_item(\"Ether\", 4)
+
+	popup_menu.id_pressed.connect(_on_menu_item_pressed)
+	items_menu.id_pressed.connect(_on_menu_item_pressed)
+
+
+
+func _on_menu_item_pressed(id):
+	match id:
+		0: print(\"Attack\")
+		1: print(\"Magic\")
+		2: print(\"Wait\")
+		3: print(\"Potion\")
+		4: print(\"Ether\")
+"
+
+[sub_resource type="GDScript" id="GDScript_74uan"]
+script/source = "extends Node
+var BN = Global.battle_nodes()
+
+enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY_FREE, HOVER_DEPLOY_BUSY}
+
+
+func _input(event):
+	var popup_menu=get_parent().get_node(\"FightMenu\")
+	var turn_queue = get_parent().get_parent().get_node(\"TurnQueue\").turn_queue
+	if event is InputEventKey and event.pressed:
+		var cursor = BN.get_battle_cursor()
+		var cursor_unit = cursor.cursor_content.get(\"unit\", null)
+		var hover_unit_with_turn = cursor_unit != null and cursor_unit.id == turn_queue[0].unit.id
+		#var state_key = [current_state, event.keycode]
+		var state_key = [event.keycode,hover_unit_with_turn]
+		match state_key:
+			[KEY_ENTER,true]:
+				popup_menu.open()
+"
+
+[sub_resource type="GDScript" id="GDScript_bey5f"]
+script/source = "extends PopupMenu
+var BN = Global.battle_nodes()
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta: float) -> void:
+	pass
+
+func open():
+	var cursor = BN.get_battle_cursor()
+	cursor.lock()
+	popup()
+	
+func close():
+	var cursor = BN.get_battle_cursor()
+	cursor.unllock()
+	hide()
+"
 
 [node name="BattlePhase" type="Node"]
+script = SubResource("GDScript_mkj42")
+
+[node name="TurnQueue" type="Node" parent="."]
+script = SubResource("GDScript_8g1m3")
+
+[node name="EnemyAI" type="Node" parent="."]
+script = SubResource("GDScript_7laoh")
+
+[node name="BattlePhaseUI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = SubResource("GDScript_msym8")
+
+[node name="InputController" type="Node" parent="BattlePhaseUI"]
+script = SubResource("GDScript_74uan")
+
+[node name="FightMenu" type="PopupMenu" parent="BattlePhaseUI"]
+visible = true
+script = SubResource("GDScript_bey5f")

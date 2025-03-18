@@ -23,12 +23,11 @@ z_as_relative = false
 layout_mode = 0
 offset_left = 250.0
 offset_top = 300.0
-offset_right = 750.0
-offset_bottom = 600.0
+offset_right = 250.0
+offset_bottom = 300.0
 theme_override_styles/panel = SubResource("StyleBoxTexture_ngpob")
 
 [node name="Position" type="Label" parent="UnitInfo/PanelContainer"]
-visible = false
 layout_mode = 2
 offset_top = 138.0
 offset_right = 500.0
@@ -54,10 +53,24 @@ offset_right = 40.0
 offset_bottom = 40.0
 texture_progress = ExtResource("5_5evsb")
 
+[node name="HpNum" type="Label" parent="UnitInfo/PanelContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_ci734")
+
+[node name="Level" type="Label" parent="UnitInfo/PanelContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_ci734")
+
 [node name="TextureRect" type="TextureRect" parent="UnitInfo"]
 layout_mode = 2
-offset_left = 250.0
+offset_left = 280.0
 offset_top = 300.0
-offset_right = 750.0
+offset_right = 780.0
 offset_bottom = 600.0
 expand_mode = 1
