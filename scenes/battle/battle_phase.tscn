@@ -46,13 +46,17 @@ func initialize():
 
 
 		
-
-		
+	print(\"-----------------------\")
+	print(\"TURNO DI:\")
+	print(\"NAME: \",turn_queue[0].unit.meta.name)
+	focus_unit_with_turn()
+	
 	if turn_queue[0].unit.team==Global.team.ENEMY:
 		get_tree().root.set_disable_input(true)
 		#DO SOMETHING
 		var enemy_AI=get_parent().get_node(\"EnemyAI\")
 		enemy_AI.perform_turn()
+	else:
 		get_tree().root.set_disable_input(false)
 		
 
@@ -63,26 +67,40 @@ func reload_queue():
 	if turn_queue.size() > 1:
 		var first_element = turn_queue.pop_front() # Rimuove il primo elemento
 		turn_queue.append(first_element) # Lo aggiunge in fondo
+		print(\"-----------------------\")
+		print(\"TURNO DI:\")
+		print(\"NAME: \",turn_queue[0].unit.meta.name)
+		focus_unit_with_turn()
+		
 		if turn_queue[0].unit.team==Global.team.ENEMY:
 			get_tree().root.set_disable_input(true)
 			#DO SOMETHING
 			var enemy_AI=get_parent().get_node(\"EnemyAI\")
 			enemy_AI.perform_turn()
+		else:
 			get_tree().root.set_disable_input(false)
 	
 	
+func focus_unit_with_turn():
+	var unit_with_turn=turn_queue[0]
+	var cursor = BN.get_battle_cursor()
+	cursor.relocate(unit_with_turn.position)
 "
 
 [sub_resource type="GDScript" id="GDScript_7laoh"]
 script/source = "extends Node
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
-
+func sleep(seconds: float) -> void:
+	await get_tree().create_timer(seconds).timeout
 func perform_turn():
 	var turn_queue_node = get_parent().get_node(\"TurnQueue\")
 	var enemy_pos_unit = turn_queue_node.turn_queue[0]
-	print(\"TURNO DEL NEMICO:\")
+	print(\"FAKE ENEMY TURN (WAIT):\")
 	print(enemy_pos_unit.position)
 	print(enemy_pos_unit.unit)
+	
+	#SVOLGO IL TURNO
+	await sleep(2.0)
 	turn_queue_node.reload_queue()
 "
 
@@ -90,34 +108,61 @@ func perform_turn():
 script/source = "extends Control
 
 @onready var popup_menu = $FightMenu
+var menu_open = false
 
 func _ready():
-	
-	popup_menu.position.x=0
 	popup_menu.position.y=get_viewport_rect().size.y + popup_menu.size.y
-	popup_menu.add_item(\"Attack\", 0)
-	popup_menu.add_item(\"Magic\", 1)
-	popup_menu.add_submenu_item(\"Items\", \"items_menu\") # menu cascata
-	popup_menu.add_item(\"Wait\", 2)
+	popup_menu.hide()  # Nasconde il menu all'inizio
 
-	var items_menu = PopupMenu.new()
-	popup_menu.add_child(items_menu)
-	items_menu.name = \"items_menu\"
-	items_menu.add_item(\"Potion\", 3)
-	items_menu.add_item(\"Ether\", 4)
+	# Crea il sottomenu Azione PRIMA di aggiungerlo al menu principale
+	var action_menu = PopupMenu.new()
+	action_menu.name = \"action_menu\"
+	popup_menu.add_child(action_menu)
+	action_menu.add_item(\"Attack\", 3)
+	
+	#LOAD DYMANICALLY
+	action_menu.add_item(\"Skill group 1\", 4)
+	action_menu.add_item(\"Skill group 2\", 5)
+	#LOAD DYMANICALLY
 
+	# Menu principale
+	popup_menu.add_submenu_item(\"Action\", \"action_menu\")
+	popup_menu.add_item(\"Wait\", 1)
+	popup_menu.add_item(\"Move\", 2)
+
+	# Collegamento segnali per i menu
 	popup_menu.id_pressed.connect(_on_menu_item_pressed)
-	items_menu.id_pressed.connect(_on_menu_item_pressed)
+	action_menu.id_pressed.connect(_on_menu_item_pressed)
 
+func _input(event):
+	if event.is_action_pressed(\"ui_accept\"):  # Invio per aprire/chiudere il menu
+		toggle_menu()
+	
+	if event.is_action_pressed(\"ui_cancel\") and menu_open:  # X per chiudere
+		close_menu()
 
+func toggle_menu():
+	if menu_open:
+		close_menu()
+	else:
+		open_menu()
+
+func open_menu():
+	menu_open = true
+	popup_menu.show()
+
+func close_menu():
+	menu_open = false
+	popup_menu.hide()
 
 func _on_menu_item_pressed(id):
 	match id:
-		0: print(\"Attack\")
-		1: print(\"Magic\")
-		2: print(\"Wait\")
-		3: print(\"Potion\")
-		4: print(\"Ether\")
+		1: print(\"Aspetta\")
+		2: print(\"Muovi\")
+		3: print(\"Azione 1 eseguita\")
+		4: print(\"Azione 2 eseguita\")
+
+	close_menu()  # Chiude il menu dopo la selezione
 "
 
 [sub_resource type="GDScript" id="GDScript_74uan"]
@@ -171,6 +216,8 @@ script = SubResource("GDScript_mkj42")
 
 [node name="TurnQueue" type="Node" parent="."]
 script = SubResource("GDScript_8g1m3")
+
+[node name="BattlLogic" type="Node" parent="."]
 
 [node name="EnemyAI" type="Node" parent="."]
 script = SubResource("GDScript_7laoh")

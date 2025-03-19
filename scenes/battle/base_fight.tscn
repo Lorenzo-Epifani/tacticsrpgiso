@@ -250,13 +250,15 @@ func _ready():
 
 
 # 🔹 Costruisce il dizionario leggendo i dati dai 3 nodi figli
-func build_grid_data():
+func build_grid_data(rebuild=true):
 	# Recupera tutte le coordinate uniche dai 3 dizionari
 	if !units_container or !terrain or ! static_container: return
 	var all_keys = units_container.data_dict.keys() + terrain.data_dict.keys() + static_container.data_dict.keys()
 	all_keys = all_keys.duplicate()  # Rimuove riferimenti duplicati
 	all_keys.sort()  # Opzionale: Ordina per una visualizzazione più chiara
-
+	
+	#CARE! REBUILD ALWAYS
+	if rebuild: grid_data={}
 	for key in all_keys:
 		grid_data[key] = {
 			\"unit\": units_container.data_dict.get(key, null),  # Personaggio o null
@@ -301,7 +303,8 @@ func move(from, to):
 	#TODO
 	
 func remove(position):
-	data_dict[position]=null
+	data_dict.erase(position)
+	print(data_dict)
 	#TODO
 	
 func update_dict(unit):
