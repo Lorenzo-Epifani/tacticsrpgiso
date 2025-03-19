@@ -1,23 +1,49 @@
-[gd_scene load_steps=7 format=3 uid="uid://bljmfu0b2ecug"]
+[gd_scene load_steps=11 format=3 uid="uid://bljmfu0b2ecug"]
+
+[ext_resource type="Theme" uid="uid://3ah4a71wtj80" path="res://assets/ui/battle_ui/battle_panels.tres" id="1_kdefl"]
 
 [sub_resource type="GDScript" id="GDScript_mkj42"]
 script/source = "extends Node
 var phase_data: Dictionary
 var BN = Global.battle_nodes()
+enum STATE { FREE, CHOOSE_MOVE, LOADING}
+var battle_phase_state = STATE.FREE
 @onready var turn_queue = $TurnQueue
 @onready var bpui = $BattlePhaseUI
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
 
 func _ready() -> void:
 	setup_battle()
-	
+	get_node(\"BattlePhaseUI\").load_menu()
+
+func set_state(_st=\"FREE\"):
+	match _st:
+		\"FREE\":	
+			battle_phase_state = STATE.FREE
+			BN.get_battle_cursor().unlock()
+		\"CHOOSE_MOVE\":	
+			battle_phase_state = STATE.CHOOSE_MOVE
+		\"LOADING\":	
+			BN.get_battle_cursor().lock()
+			battle_phase_state = STATE.LOADING
+
+
+func get_state():
+	return battle_phase_state	
 	
 func setup_battle():
+	battle_phase_state = STATE.FREE
+	
 	var cursor = BN.get_battle_cursor()
 	cursor.update_cursor_position()
 	var base_battle_ui = BN.get_base_battle_ui()
 	base_battle_ui.show_()
 	turn_queue.initialize()
+	BN.get_HLayer().erase_all()
+	
+func get_turn_queue():
+	var targetnode= get_node(\"TurnQueue\")
+	return targetnode.turn_queue
 "
 
 [sub_resource type="GDScript" id="GDScript_8g1m3"]
@@ -87,6 +113,127 @@ func focus_unit_with_turn():
 	cursor.relocate(unit_with_turn.position)
 "
 
+[sub_resource type="GDScript" id="GDScript_eke8b"]
+script/source = "extends Node
+"
+
+[sub_resource type="GDScript" id="GDScript_ywtb7"]
+script/source = "extends Node
+var BN = Global.battle_nodes()
+
+func move_action_map():
+	var bp_root = get_parent().get_parent()
+	bp_root.set_state(\"CHOOSE_MOVE\")
+	compute_draw_map()
+	pass
+	
+	
+
+func compute_draw_map(step=5,range=\"TODO\",h_step=1,h_range=\"TODO\"):
+	var cursor = BN.get_battle_cursor()
+	var location = cursor.cursor_content[\"location\"]
+	var hlayer = BN.get_HLayer()
+	var data_grid = BN.get_data_grid()
+	for x in range(location.x - step, location.x + step):
+		for y in range(location.y - step, location.y + step):
+			var distance = abs(location.x - x) + abs(location.y - y)
+			if distance <= step:
+				data_grid.add_edit_entry(Vector2(x,y),null,null,null,\"MOVE\")
+		
+	hlayer.reload_tiles()
+
+func _input(event):
+	var bp_root = BN.get_bp_root()
+	var cursor_content = BN.get_battle_cursor().cursor_content
+	var can_i_move_here = cursor_content.get(\"predict\", \"\") == \"MOVE\"
+	var bp_state = bp_root.get_state()
+	if event is InputEventKey and event.pressed:
+		var key_states = [event.keycode, bp_state, can_i_move_here]
+		match key_states:
+			[KEY_Z,bp_root.STATE.CHOOSE_MOVE,true]:
+				var to = cursor_content['location']
+				var turnqueue = BN.get_bp_root().get_turn_queue()
+				move_unit(turnqueue[0][\"position\"],to, turnqueue[0][\"unit\"])
+
+func move_unit(from , to , unit):
+	var turnqueue = BN.get_bp_root().get_turn_queue()
+	#HANDLE ALL REFERENCES
+	var original_from = from+Vector2i(0,0)
+	var bp_root = BN.get_bp_root()
+	bp_root.set_state(\"LOADING\")
+	var sprite=unit.get_node(\"BattleUnit2D/Sprite2D\")
+	var char2d=unit.get_node(\"BattleUnit2D\")
+	print(\"MI STO MUOVENDO da\", from, \"a\", to)
+	
+	var tile_size = Vector2i(Global.TW, Global.TH)  # Adatta alla tua tilemap
+	var path_positions=pathing(from,to) #TODO : PATHING ALGORITHM, IN FUNZIONE DELLA MAPPA
+	
+	# Converti le coordinate della griglia in coordinate isometriche
+	for elem in path_positions:
+		from=elem[0]
+		to=elem[1]
+		unit.orient=elem[2]
+		char2d.playy(\"walk\")
+		
+		var start_pos = Vector2(Global.g2w(from.x,from.y)[0],Global.g2w(from.x,from.y)[1])
+		var target_pos = Vector2(Global.g2w(to.x,to.y)[0],Global.g2w(to.x,to.y)[1])
+
+		var speed = 50  # Velocità in pixel al secondo
+
+		sprite.position = start_pos  # Imposta la posizione iniziale
+
+		# Movimento interpolato
+		while sprite.position.distance_to(target_pos) > 1:
+			var direction = (target_pos - sprite.position).normalized()
+			sprite.position += direction * speed * get_process_delta_time()
+			await get_tree().process_frame  # Aspetta il prossimo frame per movimento fluido
+
+		# Allinea alla posizione finale per evitare piccoli errori di floating point
+		sprite.position = target_pos
+		#unit.position = target_pos
+		#char2d.position = target_pos
+	var uc = BN.get_unit_container()	
+		
+	uc.data_dict.erase(original_from)
+	uc.update_dict(unit)
+	BN.get_battle_cursor().update_cursor_position()
+	turnqueue[0]={\"unit\": unit,\"position\":to}
+	bp_root.set_state(\"FREE\")
+	print(\"MOVIMENTO COMPLETATO!\")
+
+func pathing(from,to,map=null,extra=null):
+	#enum orient { SOUTH, EAST, NORTH, WEST }
+	
+	var path_positions = []
+	var orient= Global.orient.EAST
+	# Prima mossa: muoviti lungo X fino alla posizione corretta
+	if from.x != to.x:
+		var intermediate_pos = Vector2i(to.x, from.y)  # Stesso Y, cambia solo X
+		path_positions.append([from, intermediate_pos])
+		from = intermediate_pos  # Aggiorna il punto di partenza per la seconda mossa
+
+	# Seconda mossa: muoviti lungo Y fino alla posizione finale
+	if from.y != to.y:
+		path_positions.append([from, to, orient])
+	for elem in path_positions:
+		var diff = elem[1] - elem[0]  # Differenza tra le posizioni
+		if diff.x >0: orient = Global.orient.EAST
+		elif diff.x < 0: orient = Global.orient.WEST
+		elif diff.y >0: orient = Global.orient.NORTH
+		elif diff.y < 0: orient = Global.orient.SOUTH
+
+		elem.append(orient)
+	return path_positions
+
+
+#TODO : PATHING ALGORITHM, IN FUNZIONE DELLA MAPPA
+# Funzione di conversione da coordinate della griglia a schermo isometriche
+"
+
+[sub_resource type="GDScript" id="GDScript_u02p3"]
+script/source = "extends Node
+"
+
 [sub_resource type="GDScript" id="GDScript_7laoh"]
 script/source = "extends Node
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
@@ -109,8 +256,29 @@ script/source = "extends Control
 
 @onready var popup_menu = $FightMenu
 var menu_open = false
+var BN = Global.battle_nodes()
 
 func _ready():
+	pass
+
+
+func load_menu():
+	var turn_queue = get_parent().get_node(\"TurnQueue\").turn_queue
+	if turn_queue. is_empty() or turn_queue[0][\"unit\"].team!=Global.team.MY: return
+	var this_unit = BN.get_battle_cursor().cursor_content['unit']
+	var chosen_skills = this_unit.chosen_skills
+	
+	#PRELOAD ICON
+	var icon_path = popup_menu.theme.get(\"PopupMenu/icons/submenu\").resource_path   
+	if icon_path!=\"\":# Lista d
+		var icon = load(icon_path)  # Carica l'immagine come Texture2D
+		var img = icon.get_image()
+		img.resize(16, 16)  # Ridimensiona l'immagine
+		var new_icon = ImageTexture.create_from_image(img)
+		popup_menu.theme.set_icon(\"submenu\", \"PopupMenu\", new_icon)
+	
+
+	
 	popup_menu.position.y=get_viewport_rect().size.y + popup_menu.size.y
 	popup_menu.hide()  # Nasconde il menu all'inizio
 
@@ -120,47 +288,41 @@ func _ready():
 	popup_menu.add_child(action_menu)
 	action_menu.add_item(\"Attack\", 3)
 	
-	#LOAD DYMANICALLY
-	action_menu.add_item(\"Skill group 1\", 4)
-	action_menu.add_item(\"Skill group 2\", 5)
+	#LOAD DYMANICALLY # TODO ABILITA DI CLASSE MASTERATE
+	#action_menu.theme=popup_menu.theme
+	var skill_id = 100  # Un ID arbitrario per le skill, assicurati che non si sovrapponga ad altri
+	for special_class in chosen_skills:
+		for skillgroup in chosen_skills[special_class]:
+			action_menu.add_item(skillgroup, skill_id)
+			skill_id += 1  # Incrementa per evitare ID duplicati
 	#LOAD DYMANICALLY
 
 	# Menu principale
 	popup_menu.add_submenu_item(\"Action\", \"action_menu\")
-	popup_menu.add_item(\"Wait\", 1)
-	popup_menu.add_item(\"Move\", 2)
+	popup_menu.add_item(\"Move\", 1)
+	popup_menu.add_item(\"Wait\", 2)
 
 	# Collegamento segnali per i menu
 	popup_menu.id_pressed.connect(_on_menu_item_pressed)
 	action_menu.id_pressed.connect(_on_menu_item_pressed)
-
-func _input(event):
-	if event.is_action_pressed(\"ui_accept\"):  # Invio per aprire/chiudere il menu
-		toggle_menu()
-	
-	if event.is_action_pressed(\"ui_cancel\") and menu_open:  # X per chiudere
-		close_menu()
-
-func toggle_menu():
-	if menu_open:
-		close_menu()
-	else:
-		open_menu()
-
 func open_menu():
-	menu_open = true
-	popup_menu.show()
-
+	var cursor = BN.get_battle_cursor()
+	cursor.lock()
+	popup_menu.popup()
+	
 func close_menu():
-	menu_open = false
+	var cursor = BN.get_battle_cursor()
+	cursor.unlock()
 	popup_menu.hide()
 
 func _on_menu_item_pressed(id):
+	var cursor = BN.get_battle_cursor()
+	var battle_phase_state = get_parent().battle_phase_state
 	match id:
-		1: print(\"Aspetta\")
-		2: print(\"Muovi\")
-		3: print(\"Azione 1 eseguita\")
-		4: print(\"Azione 2 eseguita\")
+		1: 
+			var move_logic = get_parent().get_node(\"BattleLogic/MoveLogic\")
+			move_logic.move_action_map()
+
 
 	close_menu()  # Chiude il menu dopo la selezione
 "
@@ -169,21 +331,24 @@ func _on_menu_item_pressed(id):
 script/source = "extends Node
 var BN = Global.battle_nodes()
 
-enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY_FREE, HOVER_DEPLOY_BUSY}
 
 
 func _input(event):
-	var popup_menu=get_parent().get_node(\"FightMenu\")
+	var bp_root = BN.get_bp_root()
+	var bp_state = bp_root.get_state()
+	var popup_menu = get_parent().get_node(\"FightMenu\")
 	var turn_queue = get_parent().get_parent().get_node(\"TurnQueue\").turn_queue
 	if event is InputEventKey and event.pressed:
 		var cursor = BN.get_battle_cursor()
+		#var phase_state=
 		var cursor_unit = cursor.cursor_content.get(\"unit\", null)
 		var hover_unit_with_turn = cursor_unit != null and cursor_unit.id == turn_queue[0].unit.id
 		#var state_key = [current_state, event.keycode]
-		var state_key = [event.keycode,hover_unit_with_turn]
-		match state_key:
-			[KEY_ENTER,true]:
-				popup_menu.open()
+		var keycode_bpstate_iscursoronturn = [event.keycode,bp_state,hover_unit_with_turn]
+		match keycode_bpstate_iscursoronturn:
+			[KEY_ENTER,bp_root.STATE.FREE,true]:
+				#get_parent().load_menu()
+				popup_menu.open_menu()
 "
 
 [sub_resource type="GDScript" id="GDScript_bey5f"]
@@ -197,17 +362,15 @@ func _ready() -> void:
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
 
-func open():
+func open_menu():
 	var cursor = BN.get_battle_cursor()
 	cursor.lock()
 	popup()
 	
-func close():
+func close_menu():
 	var cursor = BN.get_battle_cursor()
-	cursor.unllock()
+	cursor.lock()
 	hide()
 "
 
@@ -217,7 +380,14 @@ script = SubResource("GDScript_mkj42")
 [node name="TurnQueue" type="Node" parent="."]
 script = SubResource("GDScript_8g1m3")
 
-[node name="BattlLogic" type="Node" parent="."]
+[node name="BattleLogic" type="Node" parent="."]
+script = SubResource("GDScript_eke8b")
+
+[node name="MoveLogic" type="Node" parent="BattleLogic"]
+script = SubResource("GDScript_ywtb7")
+
+[node name="ActionLogic" type="Node" parent="BattleLogic"]
+script = SubResource("GDScript_u02p3")
 
 [node name="EnemyAI" type="Node" parent="."]
 script = SubResource("GDScript_7laoh")
@@ -233,5 +403,5 @@ script = SubResource("GDScript_msym8")
 script = SubResource("GDScript_74uan")
 
 [node name="FightMenu" type="PopupMenu" parent="BattlePhaseUI"]
-visible = true
+theme = ExtResource("1_kdefl")
 script = SubResource("GDScript_bey5f")

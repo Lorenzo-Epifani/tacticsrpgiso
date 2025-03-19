@@ -1,0 +1,14 @@
+[gd_resource type="Theme" load_steps=5 format=3 uid="uid://3ah4a71wtj80"]
+
+[ext_resource type="Texture2D" uid="uid://b71oh16d1kip6" path="res://assets/ui/battle_ui/action_panel.png" id="1_0rh86"]
+[ext_resource type="FontFile" uid="uid://borvkhd2htirr" path="res://assets/ui/font.ttf" id="1_crpsp"]
+[ext_resource type="Texture2D" uid="uid://cqd60rwghh3uw" path="res://assets/ui/yes_button.png" id="2_ltisy"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ri6m8"]
+texture = ExtResource("1_0rh86")
+
+[resource]
+PopupMenu/colors/font_color = Color(0, 0, 0, 1)
+PopupMenu/fonts/font = ExtResource("1_crpsp")
+PopupMenu/icons/submenu = ExtResource("2_ltisy")
+PopupMenu/styles/panel = SubResource("StyleBoxTexture_ri6m8")

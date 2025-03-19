@@ -100,6 +100,18 @@ func get_base_battle_ui():
 	var target_node
 	return get_parent().find_child(\"BattleUI\")
 	
+func get_HLayer():
+	var target_node
+	return get_parent().find_child(\"HLayer\")
+	
+func get_Layer1():
+	var target_node
+	return get_parent().find_child(\"Layer1\")
+	
+func get_bp_root():
+	return get_parent().get_node(\"PhaseContainer/BattlePhase\")
+
+	#TODO
 "
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sachx"]
@@ -197,6 +209,18 @@ func highlight_tile(x, y, highlight: bool):
 	else:
 		erase_cell(Vector2i(x, y))  # Rimuove la tile
 		
+func erase_all():
+	var data_grid = get_parent().get_node(\"DataGrid\")  # Nodo fratello con il dizionari
+	data_grid.build_grid_data()
+	for pos in data_grid.grid_data:
+		var content = data_grid.grid_data[pos]
+		if content.get(\"deployable\",false):
+			content.erase(\"deployable\")
+		if content.get(\"predict\",false):
+			content.erase(\"predict\")
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
 
 func reload_tiles():
 	for child in get_children():
@@ -233,13 +257,27 @@ class_name DataGrid
 # Dizionario principale: raccoglie dati da units, terrain e static
 var grid_data: Dictionary = {}
 
+func add_edit_entry(position: Vector2i,unit=null,terrain=null,statics=null, predict=null):
+	if not grid_data.has(position):
+		grid_data[position]={
+			\"unit\":unit,
+			\"terrain\":terrain,
+			\"statics\":statics,
+			\"predict\":predict
+		}
+	else:
+		if unit: grid_data[position][\"unit\"]=unit
+		if terrain: grid_data[position][\"terrain\"]=terrain
+		if statics: grid_data[position][\"statics\"]=statics
+		if predict: grid_data[position][\"predict\"]=predict
+	
 
 func update_grid_data():
 	pass
 
 func get_at(grid_position: Vector2i):
 	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null })
-	print(grid_position)	
+	#print(grid_data[grid_position][\"content\"])	
 	print(content)
 	return content
 	
