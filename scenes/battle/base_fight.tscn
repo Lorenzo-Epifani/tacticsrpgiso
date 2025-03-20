@@ -110,8 +110,10 @@ func get_Layer1():
 	
 func get_bp_root():
 	return get_parent().get_node(\"PhaseContainer/BattlePhase\")
-
-	#TODO
+	
+func edit_deploy_unit(unit):
+	pass	
+	#TODO modifica unitcontaier, turnqueue, party?
 "
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sachx"]
@@ -275,8 +277,16 @@ func add_edit_entry(position: Vector2i,unit=null,terrain=null,statics=null, pred
 func update_grid_data():
 	pass
 
+func is_steppable(grid_position: Vector2i):
+	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null,\" predict\":null })
+	#TODO: STEPPABLE CRITERION
+	if content[\"unit\"]:
+		return false
+	
+	return true
+
 func get_at(grid_position: Vector2i):
-	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null })
+	var content = grid_data.get(grid_position, { \"unit\": null, \"terrain\": null, \"statics\": null, \"predict\":null })
 	#print(grid_data[grid_position][\"content\"])	
 	print(content)
 	return content
@@ -285,8 +295,17 @@ func _ready():
 	print(\"DataGrid ready\")
 	update_grid_data()
 	pass
-
-
+	
+func get_attackmap():
+	pass#TODO
+	
+func get_movemap():
+	var movemap={}
+	for element in grid_data:
+		if grid_data[element].get(\"predict\",\"\")==\"MOVE\":
+			movemap[element]=true
+	return movemap
+	
 # 🔹 Costruisce il dizionario leggendo i dati dai 3 nodi figli
 func build_grid_data(rebuild=true):
 	# Recupera tutte le coordinate uniche dai 3 dizionari
@@ -348,7 +367,7 @@ func remove(position):
 func update_dict(unit):
 	#print(unit.char2d)
 	#var grid_coord = Global.w2g(unit.sprite.global_transform.origin[0],unit.sprite.global_transform.origin[1])
-	unit.char2d.playy(\"walk\")
+	unit.char2d.walk_if_not()
 	var grid_xy = Global.w2g(unit.sprite.position[0],unit.sprite.position[1])
 	data_dict[Vector2i(grid_xy[0], grid_xy[1])] = unit
 	if get_parent().has_node(\"StaticsContainer\") and get_parent().has_node(\"Terrain\"):

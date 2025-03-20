@@ -66,6 +66,7 @@ func update_cursor_position():
 	position = world_position  # Sposta il cursore nella posizione giusta
 
 	var grid_coord = Global.w2g(world_position[0],world_position[1])
+	print(grid_coord)
 	#print("Cursore su:", cursor_position, "Grid", grid_coord, "→ Layer:", active_layer, "→ Posizione globale:", world_position)
 	cursor_content = data_grid.get_at(Vector2i(grid_coord[0],grid_coord[1]))
 	cursor_content['location']=Vector2i(grid_coord[0],grid_coord[1])

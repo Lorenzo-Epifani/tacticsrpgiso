@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://b422lvsp0j5gy"]
+[gd_scene load_steps=17 format=3 uid="uid://b422lvsp0j5gy"]
 
 [ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
 [ext_resource type="Texture2D" uid="uid://cqga3121e3gsi" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
@@ -20,7 +20,13 @@ script/source = "extends Node
 @onready var id #AUTOGENERATE FOR ENEMIES
 @onready var party_member
 # Called when the node enters the scene tree for the first time.
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
+  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
 func __initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _orient=Global.orient.SOUTH, _team=Global.team.ENEMY):
 	soft_stat = _soft_stat
 	soft_stat['act_hp'] = soft_stat['hp']
@@ -93,6 +99,14 @@ func _ready():
 	#Global.generate_pg()
 	#sprite.visible=true
 	#playy(\"walk\")
+	
+
+	
+func walk_if_not():
+	var ap = get_node(\"Sprite2D/AnimationPlayer\")
+	if !ap.is_playing():
+		playy(\"walk\")
+
 
 func playy(anim_name):
 	var orient = get_parent().orient
@@ -127,6 +141,21 @@ shader_parameter/pattern = 0
 shader_parameter/inside = false
 shader_parameter/add_margins = false
 shader_parameter/number_of_images = Vector2(1, 1)
+
+[sub_resource type="GDScript" id="GDScript_5chbf"]
+script/source = "extends Sprite2D
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	pass # Replace with function body.
+
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta):
+	#TODO ZINDEX HANDLING
+	z_index = position.y+100
+"
 
 [sub_resource type="Animation" id="Animation_6o427"]
 tracks/0/type = "value"
@@ -427,15 +456,18 @@ _data = {
 script = SubResource("GDScript_dnbi4")
 
 [node name="BattleUnit2D" type="Node2D" parent="."]
+y_sort_enabled = true
 script = SubResource("GDScript_0jybh")
 
 [node name="Sprite2D" type="Sprite2D" parent="BattleUnit2D"]
+y_sort_enabled = true
 material = SubResource("ShaderMaterial_7vs7s")
 texture = ExtResource("2_dm436")
 hframes = 32
 vframes = 32
 frame = 1
 region_filter_clip_enabled = true
+script = SubResource("GDScript_5chbf")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="BattleUnit2D/Sprite2D"]
 libraries = {

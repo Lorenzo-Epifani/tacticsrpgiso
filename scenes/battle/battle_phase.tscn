@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://bljmfu0b2ecug"]
+[gd_scene load_steps=12 format=3 uid="uid://bljmfu0b2ecug"]
 
 [ext_resource type="Theme" uid="uid://3ah4a71wtj80" path="res://assets/ui/battle_ui/battle_panels.tres" id="1_kdefl"]
 
@@ -44,6 +44,20 @@ func setup_battle():
 func get_turn_queue():
 	var targetnode= get_node(\"TurnQueue\")
 	return targetnode.turn_queue
+
+func battle_unit_sync(unit):
+	var unit_id=unit.id
+	var uc = BN.get_unit_container()	
+	for elem in uc.data_dict:
+		if uc.data_dict[elem].id==unit.id: uc.data_dict.erase(elem)	
+	uc.data_dict[unit.position]=unit
+	
+	for i in range(len(turn_queue.turn_queue)):  
+		if turn_queue.turn_queue[i][\"unit\"].id == unit.id:
+			turn_queue.turn_queue[i] = {\"unit\": unit, \"position\": unit.position}  # Modifica effettiva
+		
+	uc.update_dict(unit)
+	BN.get_battle_cursor().update_cursor_position()
 "
 
 [sub_resource type="GDScript" id="GDScript_8g1m3"]
@@ -129,7 +143,10 @@ func move_action_map():
 	
 	
 
-func compute_draw_map(step=5,range=\"TODO\",h_step=1,h_range=\"TODO\"):
+func compute_draw_map(step=5,atk_range=1,h_step=1,h_atk_range=\"TODO\"):
+	#TODO ATK RANGE AND HEIGHT HANDLING!
+	#CRITERI DI COSTRUZIONE DELLA MAP, TODO TODO TODO
+	var movemap_coarse = {}
 	var cursor = BN.get_battle_cursor()
 	var location = cursor.cursor_content[\"location\"]
 	var hlayer = BN.get_HLayer()
@@ -137,8 +154,23 @@ func compute_draw_map(step=5,range=\"TODO\",h_step=1,h_range=\"TODO\"):
 	for x in range(location.x - step, location.x + step):
 		for y in range(location.y - step, location.y + step):
 			var distance = abs(location.x - x) + abs(location.y - y)
-			if distance <= step:
-				data_grid.add_edit_entry(Vector2(x,y),null,null,null,\"MOVE\")
+			if distance < step:
+				if data_grid.is_steppable(Vector2i(x,y)):
+					movemap_coarse[Vector2i(x,y)] = true
+				#	data_grid.add_edit_entry(Vector2(x,y),null,null,null,\"MOVE\")
+	for elem in movemap_coarse:
+		var path_positions = get_node(\"Algorithms\").find_path(location,elem,movemap_coarse)
+		if path_positions.size()!=0:
+			data_grid.add_edit_entry(elem,null,null,null,\"MOVE\")
+	
+	var movemap = BN.get_data_grid().get_movemap()
+	movemap[location]=true
+	for elem in movemap:
+		if !elem in movemap: data_grid.add_edit_entry(elem,null,null,null,\"ATK\")
+		if !Vector2i(elem.x+atk_range,elem.y) in movemap: data_grid.add_edit_entry(Vector2i(elem.x+atk_range,elem.y),null,null,null,\"ATK\")
+		if !Vector2i(elem.x-atk_range,elem.y) in movemap: data_grid.add_edit_entry(Vector2i(elem.x-atk_range,elem.y),null,null,null,\"ATK\")
+		if !Vector2i(elem.x,elem.y-atk_range) in movemap: data_grid.add_edit_entry(Vector2i(elem.x,elem.y-atk_range),null,null,null,\"ATK\")
+		if !Vector2i(elem.x,elem.y+atk_range) in movemap: data_grid.add_edit_entry(Vector2i(elem.x,elem.y+atk_range),null,null,null,\"ATK\")
 		
 	hlayer.reload_tiles()
 
@@ -153,11 +185,15 @@ func _input(event):
 			[KEY_Z,bp_root.STATE.CHOOSE_MOVE,true]:
 				var to = cursor_content['location']
 				var turnqueue = BN.get_bp_root().get_turn_queue()
+				var hlayer = BN.get_HLayer()
 				move_unit(turnqueue[0][\"position\"],to, turnqueue[0][\"unit\"])
+				hlayer.erase_all()
+			[KEY_X,bp_root.STATE.CHOOSE_MOVE,true]:
+				pass#UNDO ACTION #TODO
 
 func move_unit(from , to , unit):
-	var turnqueue = BN.get_bp_root().get_turn_queue()
 	#HANDLE ALL REFERENCES
+
 	var original_from = from+Vector2i(0,0)
 	var bp_root = BN.get_bp_root()
 	bp_root.set_state(\"LOADING\")
@@ -180,7 +216,7 @@ func move_unit(from , to , unit):
 
 		var speed = 50  # Velocità in pixel al secondo
 
-		sprite.position = start_pos  # Imposta la posizione iniziale
+		#sprite.position = start_pos  # Imposta la posizione iniziale
 
 		# Movimento interpolato
 		while sprite.position.distance_to(target_pos) > 1:
@@ -192,29 +228,22 @@ func move_unit(from , to , unit):
 		sprite.position = target_pos
 		#unit.position = target_pos
 		#char2d.position = target_pos
-	var uc = BN.get_unit_container()	
-		
-	uc.data_dict.erase(original_from)
-	uc.update_dict(unit)
+	unit.position=to
+	BN.get_bp_root().battle_unit_sync(unit)
 	BN.get_battle_cursor().update_cursor_position()
-	turnqueue[0]={\"unit\": unit,\"position\":to}
+
 	bp_root.set_state(\"FREE\")
 	print(\"MOVIMENTO COMPLETATO!\")
 
 func pathing(from,to,map=null,extra=null):
 	#enum orient { SOUTH, EAST, NORTH, WEST }
+	#TODO: GESTISCI TUTTO....UNITA,BURRONI,FIUMI ECC
+	var movemap = BN.get_data_grid().get_movemap()
 	
-	var path_positions = []
+	var path_positions = get_node(\"Algorithms\").find_path(from,to,movemap)
 	var orient= Global.orient.EAST
 	# Prima mossa: muoviti lungo X fino alla posizione corretta
-	if from.x != to.x:
-		var intermediate_pos = Vector2i(to.x, from.y)  # Stesso Y, cambia solo X
-		path_positions.append([from, intermediate_pos])
-		from = intermediate_pos  # Aggiorna il punto di partenza per la seconda mossa
 
-	# Seconda mossa: muoviti lungo Y fino alla posizione finale
-	if from.y != to.y:
-		path_positions.append([from, to, orient])
 	for elem in path_positions:
 		var diff = elem[1] - elem[0]  # Differenza tra le posizioni
 		if diff.x >0: orient = Global.orient.EAST
@@ -228,6 +257,87 @@ func pathing(from,to,map=null,extra=null):
 
 #TODO : PATHING ALGORITHM, IN FUNZIONE DELLA MAPPA
 # Funzione di conversione da coordinate della griglia a schermo isometriche
+"
+
+[sub_resource type="GDScript" id="GDScript_cpdko"]
+script/source = "extends Node
+func find_path(from: Vector2i, to: Vector2i, movemap: Dictionary) -> Array:
+	if from == to:
+		return [from]  # Se siamo già alla destinazione, restituisci solo il punto
+	
+	if not movemap.has(to):
+		return []  # Se \"from\" o \"to\" non esistono in movemap, nessun percorso è possibile
+	
+	var open_list = [from]
+	var came_from = {}
+	var g_score = {from: 0}  # Costo del cammino fino a \"from\"
+	var f_score = {from: from.distance_to(to)}  # Stima del costo totale
+	
+	while open_list:
+		# Trova il nodo con il valore f_score più basso
+		open_list.sort_custom(func(a, b): return f_score.get(a, INF) < f_score.get(b, INF))
+		var current = open_list.pop_front()
+
+		if current == to:
+			return path_to_segments(reconstruct_path(came_from, current))  # Percorso trasformato in segmenti
+
+		for neighbor in get_neighbors(current, movemap):
+			var tentative_g_score = g_score[current] + 1  # Distanza uniforme
+			
+			if tentative_g_score < g_score.get(neighbor, INF):
+				came_from[neighbor] = current
+				g_score[neighbor] = tentative_g_score
+				f_score[neighbor] = tentative_g_score + neighbor.distance_to(to)
+
+				if neighbor not in open_list:
+					open_list.append(neighbor)
+
+	return []  # Nessun percorso trovato
+
+# **📌 Ricostruisce il percorso dal punto finale**
+func reconstruct_path(came_from: Dictionary, current: Vector2i) -> Array:
+	var path = [current]
+	while current in came_from:
+		current = came_from[current]
+		path.append(current)
+	path.reverse()
+	return path  # Restituisce il percorso grezzo per poi convertirlo in segmenti
+
+# **📌 Trova i vicini validi (solo posizioni presenti in `movemap`)**
+func get_neighbors(pos: Vector2i, movemap: Dictionary) -> Array:
+	var directions = [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
+	var neighbors = []
+	
+	for dir in directions:
+		var neighbor = pos + dir
+		if movemap.has(neighbor) and movemap[neighbor]:  # Solo posizioni valide
+			neighbors.append(neighbor)
+	
+	return neighbors
+
+# **📌 Converte il percorso in segmenti rettilinei (solo X o solo Y per segmento)**
+func path_to_segments(path: Array) -> Array:
+	var segments = []
+	if path.size() < 2:
+		return segments  # Nessun segmento se il percorso è troppo corto
+
+	var start = path[0]  # Punto di partenza del primo segmento
+	var direction = Vector2i(0, 0)  # Direzione corrente
+
+	for i in range(1, path.size()):
+		var current_direction = path[i] - path[i-1]  # Calcola la direzione attuale
+		
+		# Se la direzione cambia (da orizzontale a verticale o viceversa)
+		if current_direction.x != direction.x or current_direction.y != direction.y:
+			if direction != Vector2i(0, 0):  # Se non è il primo movimento
+				segments.append([start, path[i-1]])  # Chiudi il segmento precedente
+			start = path[i-1]  # Nuovo inizio segmento
+			direction = current_direction  # Aggiorna la direzione attuale
+
+	# Aggiungi l'ultimo segmento
+	segments.append([start, path[-1]])
+
+	return segments
 "
 
 [sub_resource type="GDScript" id="GDScript_u02p3"]
@@ -385,6 +495,9 @@ script = SubResource("GDScript_eke8b")
 
 [node name="MoveLogic" type="Node" parent="BattleLogic"]
 script = SubResource("GDScript_ywtb7")
+
+[node name="Algorithms" type="Node" parent="BattleLogic/MoveLogic"]
+script = SubResource("GDScript_cpdko")
 
 [node name="ActionLogic" type="Node" parent="BattleLogic"]
 script = SubResource("GDScript_u02p3")
