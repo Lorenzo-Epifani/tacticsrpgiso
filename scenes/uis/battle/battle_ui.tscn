@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://scenes/uis/battle/battle_ui.gd" id="1_tdd7p"]
 [ext_resource type="Script" path="res://scenes/uis/battle/unit_info.gd" id="1_tslr6"]
 [ext_resource type="Texture2D" uid="uid://8vt7rvr5qkt7" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="3_povuj"]
-[ext_resource type="FontFile" uid="uid://borvkhd2htirr" path="res://assets/ui/font.ttf" id="4_ci734"]
-[ext_resource type="Texture2D" uid="uid://6cex30yi08l1" path="res://assets/ui/battle_ui/hp.png" id="5_5evsb"]
+[ext_resource type="FontFile" uid="uid://b1o7xt3shnr8v" path="res://assets/ui/font.ttf" id="4_ci734"]
+[ext_resource type="Texture2D" uid="uid://doerg0hsvei2r" path="res://assets/ui/battle_ui/hp.png" id="5_5evsb"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ngpob"]
 texture = ExtResource("3_povuj")

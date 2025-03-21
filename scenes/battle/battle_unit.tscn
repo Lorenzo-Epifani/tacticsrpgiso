@@ -1,7 +1,7 @@
 [gd_scene load_steps=17 format=3 uid="uid://b422lvsp0j5gy"]
 
 [ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
-[ext_resource type="Texture2D" uid="uid://cqga3121e3gsi" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
+[ext_resource type="Texture2D" uid="uid://cqxrbfjg6ww1e" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
 
 [sub_resource type="GDScript" id="GDScript_dnbi4"]
 script/source = "extends Node
@@ -75,6 +75,9 @@ func from_dataclass(unit_dataclass, _position, _team = Global.team.MY, _orient=G
 		portrait = udc['portrait']
 	team = _team
 	soft_stat['act_hp'] = soft_stat['hp']
+	
+func playy(anim_name):
+	get_node(\"BattleUnit2D\").playy(anim_name)
 "
 
 [sub_resource type="GDScript" id="GDScript_0jybh"]

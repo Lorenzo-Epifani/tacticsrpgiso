@@ -1,10 +1,10 @@
 [gd_scene load_steps=16 format=3 uid="uid://c5jdsdlt1palp"]
 
-[ext_resource type="Texture2D" uid="uid://dcs81ch366ct8" path="res://assets/ui/panel.png" id="2_ck4hb"]
+[ext_resource type="Texture2D" uid="uid://d2qy2pvrqkdrr" path="res://assets/ui/panel.png" id="2_ck4hb"]
 [ext_resource type="Texture2D" uid="uid://8vt7rvr5qkt7" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
-[ext_resource type="Texture2D" uid="uid://ckxrl8pcml1u8" path="res://assets/ui/no_button.png" id="3_ev7r0"]
-[ext_resource type="Texture2D" uid="uid://cqd60rwghh3uw" path="res://assets/ui/yes_button.png" id="4_hu6vv"]
-[ext_resource type="FontFile" uid="uid://borvkhd2htirr" path="res://assets/ui/font.ttf" id="5_wrljb"]
+[ext_resource type="Texture2D" uid="uid://bc8laoey0ox4g" path="res://assets/ui/no_button.png" id="3_ev7r0"]
+[ext_resource type="Texture2D" uid="uid://rchgh5lar7r3" path="res://assets/ui/yes_button.png" id="4_hu6vv"]
+[ext_resource type="FontFile" uid="uid://b1o7xt3shnr8v" path="res://assets/ui/font.ttf" id="5_wrljb"]
 
 [sub_resource type="GDScript" id="GDScript_515iq"]
 script/source = "extends Node

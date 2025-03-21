@@ -1,12 +1,13 @@
 [gd_scene load_steps=12 format=3 uid="uid://bljmfu0b2ecug"]
 
+[ext_resource type="Script" path="res://scenes/battle/action_logic.gd" id="1_8fiwh"]
 [ext_resource type="Theme" uid="uid://3ah4a71wtj80" path="res://assets/ui/battle_ui/battle_panels.tres" id="1_kdefl"]
 
 [sub_resource type="GDScript" id="GDScript_mkj42"]
 script/source = "extends Node
 var phase_data: Dictionary
 var BN = Global.battle_nodes()
-enum STATE { FREE, CHOOSE_MOVE, LOADING}
+enum STATE { FREE, CHOOSE_MOVE, LOADING, CHOOSE_ATK}
 var battle_phase_state = STATE.FREE
 @onready var turn_queue = $TurnQueue
 @onready var bpui = $BattlePhaseUI
@@ -26,6 +27,8 @@ func set_state(_st=\"FREE\"):
 		\"LOADING\":	
 			BN.get_battle_cursor().lock()
 			battle_phase_state = STATE.LOADING
+		\"CHOOSE_ATK\":
+			battle_phase_state = STATE.CHOOSE_ATK
 
 
 func get_state():
@@ -144,7 +147,7 @@ func move_action_map():
 	
 
 func compute_draw_map(step=5,atk_range=1,h_step=1,h_atk_range=\"TODO\"):
-	#TODO ATK RANGE AND HEIGHT HANDLING!
+	#TODO ATK RANGE map AND HEIGHT HANDLING!
 	#CRITERI DI COSTRUZIONE DELLA MAP, TODO TODO TODO
 	var movemap_coarse = {}
 	var cursor = BN.get_battle_cursor()
@@ -340,10 +343,6 @@ func path_to_segments(path: Array) -> Array:
 	return segments
 "
 
-[sub_resource type="GDScript" id="GDScript_u02p3"]
-script/source = "extends Node
-"
-
 [sub_resource type="GDScript" id="GDScript_7laoh"]
 script/source = "extends Node
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
@@ -432,6 +431,10 @@ func _on_menu_item_pressed(id):
 		1: 
 			var move_logic = get_parent().get_node(\"BattleLogic/MoveLogic\")
 			move_logic.move_action_map()
+		3:
+			var action_logic = get_parent().get_node(\"BattleLogic/ActionLogic\")
+			action_logic.atk_map()
+			
 
 
 	close_menu()  # Chiude il menu dopo la selezione
@@ -500,7 +503,7 @@ script = SubResource("GDScript_ywtb7")
 script = SubResource("GDScript_cpdko")
 
 [node name="ActionLogic" type="Node" parent="BattleLogic"]
-script = SubResource("GDScript_u02p3")
+script = ExtResource("1_8fiwh")
 
 [node name="EnemyAI" type="Node" parent="."]
 script = SubResource("GDScript_7laoh")
@@ -518,3 +521,5 @@ script = SubResource("GDScript_74uan")
 [node name="FightMenu" type="PopupMenu" parent="BattlePhaseUI"]
 theme = ExtResource("1_kdefl")
 script = SubResource("GDScript_bey5f")
+
+[node name="Node" type="Node" parent="."]
