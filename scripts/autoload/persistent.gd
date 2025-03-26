@@ -59,6 +59,43 @@ func load_all_data():
 		for rowind in len(data[tab_dict['name']]):
 			for cell in data[tab_dict['name']][rowind]:
 				if cell in tab_dict["json_col"]:
-					data[tab_dict['name']][rowind][cell]=JSON.parse_string(data[tab_dict['name']][rowind][cell])
+					data[tab_dict['name']][rowind][cell]=parse_json_values_in_dict(data[tab_dict['name']][rowind][cell])
 				
 	print("✅ Database di gioco esposto su DB.data !")
+
+
+func get_by_id(table_name: String, id):	
+	var sql = "SELECT * FROM %s WHERE id = ?;" % table_name
+	var result= execute_query(sql, [id])[0]
+	var newdict = {}
+	for key in result:
+		result[key] = parse_json_values_in_dict(result[key])
+	return result
+
+			
+			
+func parse_json_values_in_dict(data):
+	var json = JSON.new()
+	
+	if typeof(data) == TYPE_DICTIONARY:
+		var new_dict = {}
+		for key in data.keys():
+			var value = data[key]
+			new_dict[key] = parse_json_values_in_dict(value)
+		return new_dict
+	
+	elif typeof(data) == TYPE_ARRAY:
+		var new_array = []
+		for item in data:
+			new_array.append(parse_json_values_in_dict(item))
+		return new_array
+	
+	elif typeof(data) == TYPE_STRING:
+		var result = json.parse(data)
+		if result == OK:
+			return parse_json_values_in_dict(json.data)
+		else:
+			return data
+	
+	else:
+		return data

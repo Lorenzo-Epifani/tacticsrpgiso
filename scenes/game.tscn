@@ -1,8 +1,64 @@
-[gd_scene load_steps=6 format=3 uid="uid://v4p8oi08j7at"]
+[gd_scene load_steps=9 format=3 uid="uid://v4p8oi08j7at"]
 
 [ext_resource type="Script" path="res://scenes/game.gd" id="1_52ifh"]
 [ext_resource type="PackedScene" uid="uid://cy2vocthpn1gi" path="res://scenes/meta_system.tscn" id="2_d8jtd"]
 [ext_resource type="PackedScene" uid="uid://dvdpiyjd8o0rd" path="res://scenes/game_manager.tscn" id="3_q2e5h"]
+
+[sub_resource type="GDScript" id="GDScript_mhuu4"]
+script/source = "extends Node
+
+
+# Dizionario per memorizzare i dati del database
+var data = {}
+
+func _ready():
+	#Autoload #TODO
+	data = $LoadGame.load_session()
+	print(\"#######SALVATAGGIO CARICATO:\")
+	print(\"#######SALVATAGGIO CARICATO:\")
+	
+	for key in data:
+		print(\"############## Dati:  \"+key)
+		
+		for elem in data[key]:
+			Global.inspect_obj(elem)
+			
+
+	
+"
+
+[sub_resource type="GDScript" id="GDScript_dd2cx"]
+script/source = "extends Node
+
+# Dizionario per memorizzare i dati del database
+
+func load_session(db_path = \"res://data/game_session/game_session.db\"):
+	\"\"\"Mappa ogni tabella in una variabile (Dizionario)\"\"\"
+	var db = SQLite.new()
+	db.path = db_path
+	if !db.open_db():
+		#HANDLE ERROR TODO
+		print(\"❌ Errore nell'apertura del database\")
+	var result ={}
+	var tables_infos = DbUtils.get_tables(db)  # Aggiungi altre tabelle se servono
+	
+	for tab_dict in tables_infos:
+		result[tab_dict['name']] = DbUtils.execute_query(db,\"SELECT * FROM \" + tab_dict['name'])
+		for rowind in len(result[tab_dict['name']]):
+			for cell in result[tab_dict['name']][rowind]:
+				if cell in tab_dict[\"json_col\"]:
+					result[tab_dict['name']][rowind][cell]=JSON.parse_string(result[tab_dict['name']][rowind][cell])
+	var udcparty=[]
+	for el in result['party']:
+		udcparty.append(unit_dc.from_sql(el))
+	result['party']=udcparty
+	#TODO VALIDA RESULT!!!!!!!!RIMUOVI ARMI / CONTROLLA ABI /STORY
+	return result
+"
+
+[sub_resource type="GDScript" id="GDScript_hxupb"]
+script/source = "extends Node
+"
 
 [sub_resource type="GDScript" id="GDScript_4b2bb"]
 script/source = "extends Node
@@ -55,6 +111,15 @@ func go_next():
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_52ifh")
+
+[node name="GameSession" type="Node" parent="."]
+script = SubResource("GDScript_mhuu4")
+
+[node name="LoadGame" type="Node" parent="GameSession"]
+script = SubResource("GDScript_dd2cx")
+
+[node name="SaveGame" type="Node" parent="GameSession"]
+script = SubResource("GDScript_hxupb")
 
 [node name="MetaSystem" parent="." instance=ExtResource("2_d8jtd")]
 script = SubResource("GDScript_4b2bb")

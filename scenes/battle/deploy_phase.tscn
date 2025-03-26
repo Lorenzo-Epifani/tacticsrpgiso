@@ -10,7 +10,7 @@
 script/source = "extends Node
 var phase_data: Dictionary
 var depl_tiles = [ Vector2i(3,4),Vector2i(4,4),Vector2i(4,3),Vector2i(3,3)] # LO PRENDI DALLA CONFIG DELLA BATTAGLçIA
-var party = GameSession.data['party']
+var party = Global.current_game_session().data['party']
 # Called when the node enters the scene tree for the first time.
 
 func _ready() -> void:
@@ -50,7 +50,7 @@ enum STATE { FREE, DEPLOYING, BEGIN_ALERT, HOVER_DEPLOY_FREE, HOVER_DEPLOY_BUSY}
 var stringstate = [\"FREE\", \"DEPLOYING\", \"BEGIN_ALERT\", \"HOVER_DEPLOY_FREE\", \"HOVER_DEPLOY_BUSY\"]
 var current_state = STATE.FREE
 var deploy_index=0
-var party_deployable = GameSession.data['party'].duplicate(true)
+var party_deployable = Global.current_game_session().data['party'].duplicate(true)
 var party_deployed = []
 var BN = Global.battle_nodes()
 var batte_unit_scene = preload(\"res://scenes/battle/battle_unit.tscn\")  # Carica la scena del personaggio
@@ -118,7 +118,8 @@ func _input(event):
 	#DEBUG CODE, EVENT TRIGGER
 	if event is InputEventKey and event.keycode==KEY_H:
 		var cursor = BN.get_battle_cursor()
-		GlobalAnimations.show_damage(cursor.cursor_position,10)
+		#func apply_damage(wait=1000,dmg_amount=1):
+		cursor.cursor_content['unit'].apply_damage()
 	if event is InputEventKey and event.keycode==KEY_J:
 		var cursor = BN.get_battle_cursor()
 		GlobalAnimations.show_damage(cursor.cursor_position,-10)

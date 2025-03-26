@@ -1,6 +1,7 @@
 #CursorNode2D
 
 extends Node2D
+class_name BattleCursor
 @export var layer: TileMapLayer  # Riferimento al TileMap principale
 @export var layer_index: int = 0  # Indice del layer su cui vogliamo muovere il cursore
 var active_layer: int = 1  # Layer attivo su cui il cursore si trova

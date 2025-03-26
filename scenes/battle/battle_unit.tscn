@@ -1,91 +1,8 @@
-[gd_scene load_steps=17 format=3 uid="uid://b422lvsp0j5gy"]
+[gd_scene load_steps=19 format=3 uid="uid://b422lvsp0j5gy"]
 
+[ext_resource type="Script" path="res://scenes/battle/battle_unit.gd" id="1_ua0tl"]
 [ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
 [ext_resource type="Texture2D" uid="uid://cqga3121e3gsi" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
-
-[sub_resource type="GDScript" id="GDScript_dnbi4"]
-script/source = "extends Node
-
-@onready var BASE_UNIT 
-@onready var soft_stat 
-@onready var orient 
-@onready var position 
-@onready var meta 
-@onready var equip 
-@onready var chosen_skills 
-@onready var char2d = $BattleUnit2D  
-@onready var sprite = $BattleUnit2D/Sprite2D  # Riferimento diretto al nodo BattleData
-@onready var portrait
-@onready var team
-@onready var id #AUTOGENERATE FOR ENEMIES
-@onready var party_member
-# Called when the node enters the scene tree for the first time.
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-  #LA POSITION QUI è DA INTENDERE IN COORDINATE TILE, LA POSITION DEL BUNIT2d E DELLO SPRITE IN COORDINATE SU SCHERMO!
-func __initialize(_soft_stat, _position, _meta, _chosen_skills={}, _equip=[], _orient=Global.orient.SOUTH, _team=Global.team.ENEMY):
-	soft_stat = _soft_stat
-	soft_stat['act_hp'] = soft_stat['hp']
-	position = _position
-	meta = _meta
-	chosen_skills = _chosen_skills
-	equip = _equip
-	team = _team
-	orient = _orient
-	id=Global.uuids()
-	portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
-	
-func __from_party_member(character_node, _position, _orient=Global.orient.SOUTH):
-	party_member = character_node
-	var c_n = character_node
-	position = _position
-	orient = _orient
-	
-	meta = c_n.meta
-	soft_stat = c_n.stats
-	chosen_skills = c_n.chosen_skills
-	equip = c_n.equip
-	id=c_n.id
-	
-	if c_n.portrait==\"\":
-		portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
-	else:
-		portrait = c_n['portrait']
-	team = Global.team.MY
-	soft_stat['act_hp'] = soft_stat['hp']
-	
-func from_dataclass(unit_dataclass, _position, _team = Global.team.MY, _orient=Global.orient.SOUTH):
-	BASE_UNIT = unit_dataclass.duplicate()
-	var udc = unit_dataclass
-	position = _position
-	orient = _orient
-	meta = udc.meta #name,class,race
-	soft_stat = udc.stats
-	chosen_skills = udc.chosen_skills
-	equip = udc.equip
-	id=udc.id
-	
-	if not udc.portrait:
-		portrait = Global.rc_2_portrait(meta['race'],meta['class_'])
-	else:
-		portrait = udc['portrait']
-	team = _team
-	soft_stat['act_hp'] = soft_stat['hp']
-	
-func playy(anim_name):
-	get_node(\"BattleUnit2D\").playy(anim_name)
-
-func apply_damage(dmg_amount=1):
-	
-	pass
-	
-func die():
-	pass
-"
 
 [sub_resource type="GDScript" id="GDScript_0jybh"]
 script/source = "extends Node
@@ -118,7 +35,7 @@ func walk_if_not():
 		playy(\"walk\")
 
 
-func playy(anim_name, reset=\"walk\",tail=1000):
+func playy(anim_name, wait=0, tail=1000,reset=\"walk\"):
 	#RESET: ESEGUE QUELL'ANIM IN CODA
 	#TAIL: TEMPO DI ATTESA PER ESEGUIRE LA CODA
 	var orient = get_parent().orient
@@ -137,12 +54,14 @@ func playy(anim_name, reset=\"walk\",tail=1000):
 			anim_name=anim_name+\"_b\"
 	print(\"EXECUTING ANIMATION:\")
 	print(anim_name)
+	if wait>0: 
+		await get_tree().create_timer(float(wait)/1000).timeout	
 	an_player.play(anim_name)  # Avvia l'animazione
 	var animf = await an_player.animation_finished
 	if reset and !anim_name.begins_with(\"walk\"):
 		while animf!=anim_name:
 			pass
-		if tail>0: await get_tree().create_timer(tail/1000).timeout	
+		if tail>0: await get_tree().create_timer(float(tail)/1000).timeout	
 		if anim_name.ends_with(\"_b\"):reset=reset+\"_b\"
 		an_player.play(reset)
 func show():
@@ -224,7 +143,7 @@ tracks/3/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
-"values": [Vector2(0, 0)]
+"values": [Vector2(0, -8)]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
@@ -457,6 +376,60 @@ tracks/0/keys = {
 "values": [4, 3, 4, 5]
 }
 
+[sub_resource type="Animation" id="Animation_6ne0g"]
+resource_name = "damaged"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [Vector2i(0, 3)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:offset")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.15, 0.2, 0.25, 0.933333, 35, 45),
+"transitions": PackedFloat32Array(1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05),
+"update": 0,
+"values": [Vector2(1, 8), Vector2(0, 8), Vector2(-1, 8), Vector2(1, 8), Vector2(-2, 8), Vector2(0, 8), Vector2(0, 0), Vector2(-1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_bgqjt"]
+resource_name = "damaged_b"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame_coords")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [Vector2i(1, 3)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:offset")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.15, 0.2, 0.25, 0.933333, 35, 45),
+"transitions": PackedFloat32Array(1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05, 1e-05),
+"update": 0,
+"values": [Vector2(1, 8), Vector2(0, 8), Vector2(-1, 8), Vector2(1, 8), Vector2(-2, 8), Vector2(0, 8), Vector2(0, 0), Vector2(-1, 0)]
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_yaaty"]
 _data = {
 "RESET": SubResource("Animation_6o427"),
@@ -466,12 +439,14 @@ _data = {
 "cast_b": SubResource("Animation_yemjn"),
 "charge": SubResource("Animation_msj2q"),
 "charge_b": SubResource("Animation_ea0hp"),
+"damaged": SubResource("Animation_6ne0g"),
+"damaged_b": SubResource("Animation_bgqjt"),
 "walk": SubResource("Animation_xfcp4"),
 "walk_b": SubResource("Animation_exqm5")
 }
 
 [node name="BattleUnit" type="Node"]
-script = SubResource("GDScript_dnbi4")
+script = ExtResource("1_ua0tl")
 
 [node name="BattleUnit2D" type="Node2D" parent="."]
 y_sort_enabled = true
@@ -481,6 +456,7 @@ script = SubResource("GDScript_0jybh")
 y_sort_enabled = true
 material = SubResource("ShaderMaterial_7vs7s")
 texture = ExtResource("2_dm436")
+offset = Vector2(0, -8)
 hframes = 32
 vframes = 32
 frame = 1

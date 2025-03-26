@@ -18,9 +18,9 @@ config/icon="res://icon.svg"
 [autoload]
 
 Global="*res://scripts/autoload/global.gd"
-DB="*res://scripts/autoload/database.gd"
-GameSession="*res://scripts/autoload/game_session.gd"
+Persistent="*res://scripts/autoload/persistent.gd"
 GlobalAnimations="*res://scripts/autoload/animations.gd"
+DbUtils="*res://scripts/autoload/db_utils.gd"
 
 [display]
 

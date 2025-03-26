@@ -55,7 +55,7 @@ func start_phase(phase: int, phase_data={}):
 		phase_container.add_child(current_node)  # Aggiunge il nodo della fase corrente
 		
 
-func _on_phase_completed(phase_data):
+func _on_phase_completed(phase_data:Dictionary):
 	\"\"\"Gestisce la transizione tra le fasi\"\"\"
 	if current_phase == BattlePhases.DEPLOY:
 		current_phase = BattlePhases.BATTLE
@@ -100,7 +100,7 @@ func get_base_battle_ui():
 	var target_node
 	return get_parent().find_child(\"BattleUI\")
 
-func uc_lookup_by_id(id):
+func uc_lookup_by_id(id:String):
 	var uc = get_parent().find_child(\"DataGrid\").find_child(\"UnitsContainer\")
 	return uc.uc_lookup_by_id(id)	
 	
@@ -115,7 +115,7 @@ func get_Layer1():
 func get_bp_root():
 	return get_parent().get_node(\"PhaseContainer/BattlePhase\")
 	
-func edit_deploy_unit(unit):
+func edit_deploy_unit(unit:BattleUnit):
 	pass	
 	#TODO modifica unitcontaier, turnqueue, party?
 "

@@ -36,25 +36,14 @@ func _input(event):
 		match key_states:
 			[KEY_Z,bp_root.STATE.CHOOSE_ATK,true]:
 				 #TODO: IL TARGET E NEMICO?
-				var turnqueue = BN.get_bp_root().get_turn_queue()
+				var turnqueue = BN.get_bp_root().get_turn_queue().turn_queue
 				var hlayer = BN.get_HLayer()
-				attaaack(turnqueue[0]["unit"],target)
+				$AttackLogic.attack_event(BN.get_unit_container().uc_lookup_by_id(turnqueue[0]),target)
 				hlayer.erase_all()
 			[KEY_X,bp_root.STATE.CHOOSE_ATK,true]:
 				pass#UNDO ACTION #TODOace with function body.
 
-func attaaack(attacker,target):
-	var orient
-	var bp_root = BN.get_bp_root()
-	bp_root.set_state("LOADING")
-	var diff=target.position-attacker.position
-	if diff.x >0: orient = Global.orient.EAST
-	elif diff.x < 0: orient = Global.orient.WEST
-	elif diff.y >0: orient = Global.orient.NORTH
-	elif diff.y < 0: orient = Global.orient.SOUTH
-	attacker.orient=orient
-	#attacker.playy("attack")
-	$AttackLogic.attack_multi_exec(attacker,target)
+
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	pass

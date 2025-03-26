@@ -339,13 +339,27 @@ script/source = "extends Node
 var BN = Global.battle_nodes()
 
 
-func attack_multi_exec(attacker,target):
+	
+func attack_event(attacker:BattleUnit, target):
+	var orient
+	var bp_root = BN.get_bp_root()
+	bp_root.set_state(\"LOADING\")
+	var diff=target.position-attacker.position
+	if diff.x >0: orient = Global.orient.EAST
+	elif diff.x < 0: orient = Global.orient.WEST
+	elif diff.y >0: orient = Global.orient.NORTH
+	elif diff.y < 0: orient = Global.orient.SOUTH
+	attacker.orient=orient
+	#TODO FIND COLLATERAL
+	var collateral=[]
+	
 	var datagrid = BN.get_data_grid()
-	#var w_type = attacker.get_weapon()
-	var dmg_result = attacker.soft_stat[\"atk\"] - target.attacker.soft_stat[\"def\"]
+	var weapon
+	attacker.playy(\"attack\")
+	target.apply_damage()
+		#var w_type = attacker.get_weapon()
 	#if dmg_result < 0: dmg_result = 0
 	#Animation.attack()
-	
 "
 
 [sub_resource type="GDScript" id="GDScript_7laoh"]
