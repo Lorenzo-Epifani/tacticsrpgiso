@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bljmfu0b2ecug"]
+[gd_scene load_steps=13 format=3 uid="uid://bljmfu0b2ecug"]
 
 [ext_resource type="Script" path="res://scenes/battle/action_logic.gd" id="1_8fiwh"]
 [ext_resource type="Theme" uid="uid://3ah4a71wtj80" path="res://assets/ui/battle_ui/battle_panels.tres" id="1_kdefl"]
@@ -46,21 +46,23 @@ func setup_battle():
 	
 func get_turn_queue():
 	var targetnode= get_node(\"TurnQueue\")
-	return targetnode.turn_queue
-
+	return targetnode
+	
+	
+\"\"\"
 func battle_unit_sync(unit):
+	#refresha unitcontainer/datagrid, aggiorna unità nella coda
 	var unit_id=unit.id
 	var uc = BN.get_unit_container()	
-	for elem in uc.data_dict:
-		if uc.data_dict[elem].id==unit.id: uc.data_dict.erase(elem)	
-	uc.data_dict[unit.position]=unit
+	BN.get_unit_container().refresh()
+	
 	
 	for i in range(len(turn_queue.turn_queue)):  
 		if turn_queue.turn_queue[i][\"unit\"].id == unit.id:
 			turn_queue.turn_queue[i] = {\"unit\": unit, \"position\": unit.position}  # Modifica effettiva
 		
-	uc.update_dict(unit)
 	BN.get_battle_cursor().update_cursor_position()
+\"\"\"
 "
 
 [sub_resource type="GDScript" id="GDScript_8g1m3"]
@@ -70,31 +72,19 @@ var turn_queue = []
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
 
 func initialize():
-	var uc_data = BN.get_unit_container().data_dict
-	for pos_key in uc_data:
-		if uc_data[pos_key].soft_stat[\"act_hp\"] > 0:  # Controlla se l'unità è ancora in vita
-			turn_queue.append({\"position\": pos_key, \"unit\": uc_data[pos_key]})
-	turn_queue.sort_custom(func(a, b): 
-		return a.unit.soft_stat.spd > b.unit.soft_stat.spd
+	var uc = BN.get_unit_container()
+	var temp_list=[]
+	for pos_key in uc.data_dict:
+		if uc.data_dict[pos_key].soft_stat[\"act_hp\"] > 0:  # Controlla se l'unità è ancora in vita
+			temp_list.append(uc.data_dict[pos_key])
+	temp_list.sort_custom(func(a, b): 
+		return a.soft_stat.spd > b.soft_stat.spd
 	)
+	turn_queue = temp_list.map(func(x): return x.id)
 	print(\"TURN_QUEUE:::::->\")
-	var i=0
-	for element in turn_queue:
-		print(\"-----------------------\")
-		print(\"-----------------------\")
-		print(\"TURN: \",i)
-		print(\"NAME: \",element.unit.meta.name)
-		print(\"SPEED: \",element.unit.soft_stat.spd)
-		print(\"TEAM: \",element.unit.team)
 
-
-		
-	print(\"-----------------------\")
-	print(\"TURNO DI:\")
-	print(\"NAME: \",turn_queue[0].unit.meta.name)
-	focus_unit_with_turn()
 	
-	if turn_queue[0].unit.team==Global.team.ENEMY:
+	if uc.uc_lookup_by_id(turn_queue[0]).team==Global.team.ENEMY:
 		get_tree().root.set_disable_input(true)
 		#DO SOMETHING
 		var enemy_AI=get_parent().get_node(\"EnemyAI\")
@@ -187,16 +177,17 @@ func _input(event):
 		match key_states:
 			[KEY_Z,bp_root.STATE.CHOOSE_MOVE,true]:
 				var to = cursor_content['location']
-				var turnqueue = BN.get_bp_root().get_turn_queue()
+				var turnqueue = BN.get_bp_root().get_turn_queue().turn_queue
 				var hlayer = BN.get_HLayer()
-				move_unit(turnqueue[0][\"position\"],to, turnqueue[0][\"unit\"])
+				var target_unit = BN.uc_lookup_by_id(turnqueue[0])
+				move_unit(target_unit, to)
 				hlayer.erase_all()
 			[KEY_X,bp_root.STATE.CHOOSE_MOVE,true]:
 				pass#UNDO ACTION #TODO
 
-func move_unit(from , to , unit):
+func move_unit(unit, to):
 	#HANDLE ALL REFERENCES
-
+	var from = unit.position
 	var original_from = from+Vector2i(0,0)
 	var bp_root = BN.get_bp_root()
 	bp_root.set_state(\"LOADING\")
@@ -232,7 +223,7 @@ func move_unit(from , to , unit):
 		#unit.position = target_pos
 		#char2d.position = target_pos
 	unit.position=to
-	BN.get_bp_root().battle_unit_sync(unit)
+	BN.get_unit_container().refresh()
 	BN.get_battle_cursor().update_cursor_position()
 
 	bp_root.set_state(\"FREE\")
@@ -343,6 +334,20 @@ func path_to_segments(path: Array) -> Array:
 	return segments
 "
 
+[sub_resource type="GDScript" id="GDScript_era1c"]
+script/source = "extends Node
+var BN = Global.battle_nodes()
+
+
+func attack_multi_exec(attacker,target):
+	var datagrid = BN.get_data_grid()
+	#var w_type = attacker.get_weapon()
+	var dmg_result = attacker.soft_stat[\"atk\"] - target.attacker.soft_stat[\"def\"]
+	#if dmg_result < 0: dmg_result = 0
+	#Animation.attack()
+	
+"
+
 [sub_resource type="GDScript" id="GDScript_7laoh"]
 script/source = "extends Node
 #enum team { MY, ENEMY, ALLIED, NEUTRAL }
@@ -373,7 +378,7 @@ func _ready():
 
 func load_menu():
 	var turn_queue = get_parent().get_node(\"TurnQueue\").turn_queue
-	if turn_queue. is_empty() or turn_queue[0][\"unit\"].team!=Global.team.MY: return
+	if turn_queue. is_empty() or BN.uc_lookup_by_id(turn_queue[0]).team!=Global.team.MY: return
 	var this_unit = BN.get_battle_cursor().cursor_content['unit']
 	var chosen_skills = this_unit.chosen_skills
 	
@@ -455,7 +460,7 @@ func _input(event):
 		var cursor = BN.get_battle_cursor()
 		#var phase_state=
 		var cursor_unit = cursor.cursor_content.get(\"unit\", null)
-		var hover_unit_with_turn = cursor_unit != null and cursor_unit.id == turn_queue[0].unit.id
+		var hover_unit_with_turn = cursor_unit != null and cursor_unit.id == BN.uc_lookup_by_id(turn_queue[0]).id
 		#var state_key = [current_state, event.keycode]
 		var keycode_bpstate_iscursoronturn = [event.keycode,bp_state,hover_unit_with_turn]
 		match keycode_bpstate_iscursoronturn:
@@ -504,6 +509,11 @@ script = SubResource("GDScript_cpdko")
 
 [node name="ActionLogic" type="Node" parent="BattleLogic"]
 script = ExtResource("1_8fiwh")
+
+[node name="AttackLogic" type="Node" parent="BattleLogic/ActionLogic"]
+script = SubResource("GDScript_era1c")
+
+[node name="SkillLogic" type="Node" parent="BattleLogic/ActionLogic"]
 
 [node name="EnemyAI" type="Node" parent="."]
 script = SubResource("GDScript_7laoh")

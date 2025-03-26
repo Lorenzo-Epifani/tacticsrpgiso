@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scenes/uis/camera/camera_2d.gd" id="2_3ihl1"]
 [ext_resource type="Script" path="res://scenes/uis/camera/cursor_node.gd" id="3_qowfu"]
 [ext_resource type="Texture2D" uid="uid://c1u5qvikgkmyx" path="res://assets/ui/battle_cursor.png" id="3_qvfh3"]
-[ext_resource type="Texture2D" uid="uid://bmu5tv1iws0w1" path="res://assets/ground/hl.png" id="5_2k8bw"]
+[ext_resource type="Texture2D" uid="uid://byk7q12we4k26" path="res://assets/ground/hl.png" id="5_2k8bw"]
 [ext_resource type="PackedScene" uid="uid://4m7qdl2ojld1" path="res://scenes/uis/battle/battle_ui.tscn" id="8_skbsw"]
 
 [sub_resource type="GDScript" id="GDScript_03ge3"]
@@ -31,7 +31,7 @@ func _ready():
 	phase_container.connect(\"battle_lost\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
 	phase_container.connect(\"reward_taken\", Callable(self, \"_on_phase_completed\"))  # Ascolta evento fine fase
 #	print(\"phasecont READY\")
-	data_grid.build_grid_data()
+	data_grid.init_grid_data()
 	start_phase(current_phase)  # Avvia la prima fase
 
 func start_phase(phase: int, phase_data={}):
@@ -99,6 +99,10 @@ func get_unit_container():
 func get_base_battle_ui():
 	var target_node
 	return get_parent().find_child(\"BattleUI\")
+
+func uc_lookup_by_id(id):
+	var uc = get_parent().find_child(\"DataGrid\").find_child(\"UnitsContainer\")
+	return uc.uc_lookup_by_id(id)	
 	
 func get_HLayer():
 	var target_node
@@ -213,7 +217,7 @@ func highlight_tile(x, y, highlight: bool):
 		
 func erase_all():
 	var data_grid = get_parent().get_node(\"DataGrid\")  # Nodo fratello con il dizionari
-	data_grid.build_grid_data()
+	#data_grid.build_grid_data()
 	for pos in data_grid.grid_data:
 		var content = data_grid.grid_data[pos]
 		if content.get(\"deployable\",false):
@@ -236,7 +240,7 @@ func reload_tiles():
 		else:
 			tiletype = content.get(\"predict\",false) # QUI VA MESSO L'ID DELL ANIMAZIONE DI ATTACCO O MOVIMENTO PER COLORARE LA TILE
 		if tiletype:
-			var anim_sprite = Animations.over_tile_sprite(tiletype)
+			var anim_sprite = GlobalAnimations.over_tile_sprite(tiletype)
 			var world_pos = Global.g2w(pos.x+1,pos.y-1) 
 			anim_sprite.position = Vector2i(world_pos[0],world_pos[1])
 			anim_sprite.play(\"default\")
@@ -307,9 +311,9 @@ func get_movemap():
 	return movemap
 	
 # 🔹 Costruisce il dizionario leggendo i dati dai 3 nodi figli
-func build_grid_data(rebuild=true):
+func init_grid_data(rebuild=true):
 	# Recupera tutte le coordinate uniche dai 3 dizionari
-	if !units_container or !terrain or ! static_container: return
+	if !units_container or !terrain or !static_container: return
 	var all_keys = units_container.data_dict.keys() + terrain.data_dict.keys() + static_container.data_dict.keys()
 	all_keys = all_keys.duplicate()  # Rimuove riferimenti duplicati
 	all_keys.sort()  # Opzionale: Ordina per una visualizzazione più chiara
@@ -351,27 +355,44 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 
 
-func add(unit,pos=null):
+func add(unit,pos=null,animate=true):
 	add_child(unit)
-	update_dict(unit)
+	if animate: unit.char2d.walk_if_not()
+	data_dict[unit.position] = unit
+	refresh()
+	get_parent().init_grid_data()
+	#update_dict(unit)
 	
+func refresh():
+	data_dict = {}
+	for child in get_children():
+		var key = child.position as Vector2i
+		data_dict[key] = child
+	get_parent().init_grid_data()
+	
+	 	
 func move(from, to):
 	pass
 	#TODO
 	
 func remove(position):
-	data_dict.erase(position)
-	print(data_dict)
+	data_dict.erase(position as Vector2i)
+	refresh()
 	#TODO
-	
-func update_dict(unit):
+
+func uc_lookup_by_id(id):
+	for child in get_children():
+		if child.id==id:
+			return child
+	print(\"WARNING: LOOKING FOR UNIT WITH NO ID\")
+	return null
+			
+#func update_dict(unit):
 	#print(unit.char2d)
 	#var grid_coord = Global.w2g(unit.sprite.global_transform.origin[0],unit.sprite.global_transform.origin[1])
-	unit.char2d.walk_if_not()
-	var grid_xy = Global.w2g(unit.sprite.position[0],unit.sprite.position[1])
-	data_dict[Vector2i(grid_xy[0], grid_xy[1])] = unit
-	if get_parent().has_node(\"StaticsContainer\") and get_parent().has_node(\"Terrain\"):
-		get_parent().build_grid_data()
+
+	#if get_parent().has_node(\"StaticsContainer\") and get_parent().has_node(\"Terrain\"):
+		
 "
 
 [sub_resource type="GDScript" id="GDScript_k81hd"]

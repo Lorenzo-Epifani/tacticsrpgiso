@@ -1,7 +1,7 @@
 [gd_scene load_steps=17 format=3 uid="uid://b422lvsp0j5gy"]
 
 [ext_resource type="Shader" path="res://assets/outline.gdshader" id="1_uxqqv"]
-[ext_resource type="Texture2D" uid="uid://cqxrbfjg6ww1e" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
+[ext_resource type="Texture2D" uid="uid://cqga3121e3gsi" path="res://assets/pg/races/bangaa/defender/defender_.png" id="2_dm436"]
 
 [sub_resource type="GDScript" id="GDScript_dnbi4"]
 script/source = "extends Node
@@ -78,6 +78,13 @@ func from_dataclass(unit_dataclass, _position, _team = Global.team.MY, _orient=G
 	
 func playy(anim_name):
 	get_node(\"BattleUnit2D\").playy(anim_name)
+
+func apply_damage(dmg_amount=1):
+	
+	pass
+	
+func die():
+	pass
 "
 
 [sub_resource type="GDScript" id="GDScript_0jybh"]
@@ -111,7 +118,9 @@ func walk_if_not():
 		playy(\"walk\")
 
 
-func playy(anim_name):
+func playy(anim_name, reset=\"walk\",tail=1000):
+	#RESET: ESEGUE QUELL'ANIM IN CODA
+	#TAIL: TEMPO DI ATTESA PER ESEGUIRE LA CODA
 	var orient = get_parent().orient
 	if !orient:
 		orient = Global.orient.SOUTH
@@ -126,8 +135,16 @@ func playy(anim_name):
 		Global.orient.WEST:
 			sprite.flip_h=false
 			anim_name=anim_name+\"_b\"
-
+	print(\"EXECUTING ANIMATION:\")
+	print(anim_name)
 	an_player.play(anim_name)  # Avvia l'animazione
+	var animf = await an_player.animation_finished
+	if reset and !anim_name.begins_with(\"walk\"):
+		while animf!=anim_name:
+			pass
+		if tail>0: await get_tree().create_timer(tail/1000).timeout	
+		if anim_name.ends_with(\"_b\"):reset=reset+\"_b\"
+		an_player.play(reset)
 func show():
 	sprite.visible=true
 	
@@ -157,7 +174,7 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
 	#TODO ZINDEX HANDLING
-	z_index = position.y+100
+	z_index = position.y+10
 "
 
 [sub_resource type="Animation" id="Animation_6o427"]
@@ -236,8 +253,7 @@ tracks/5/keys = {
 
 [sub_resource type="Animation" id="Animation_hpvqr"]
 resource_name = "attack"
-length = 0.37
-loop_mode = 1
+length = 0.8
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -245,7 +261,7 @@ tracks/0/path = NodePath(".:frame_coords")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.3),
+"times": PackedFloat32Array(0, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
 "values": [Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)]
@@ -253,8 +269,7 @@ tracks/0/keys = {
 
 [sub_resource type="Animation" id="Animation_cohmy"]
 resource_name = "attack_b"
-length = 0.37
-loop_mode = 1
+length = 0.9
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -262,7 +277,7 @@ tracks/0/path = NodePath(".:frame_coords")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0, 0.2, 0.3),
+"times": PackedFloat32Array(0, 0.4, 0.5),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 1,
 "values": [Vector2i(3, 2), Vector2i(4, 2), Vector2i(5, 2)]

@@ -75,7 +75,7 @@ func update_cursor_position():
 		BattlePhases.DEPLOY:
 			var deploy_scene = get_parent().find_child("DeployPhase", true, false)  # Cerca
 			if deploy_scene:
-				deploy_scene.update_deploy_info(cursor_content)
+				deploy_scene.update_deploy_info()
 		BattlePhases.BATTLE:
 			pass
 		BattlePhases.REWARDS:

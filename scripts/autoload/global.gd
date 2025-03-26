@@ -30,6 +30,15 @@ func g2w(grid_x,grid_y):
 	var world_y = (grid_x * TH / 2) - (grid_y * TH / 2)
 	return [world_x,world_y]
 
+func w2g_vec(vector_world):
+	var temp=w2g(vector_world.x,vector_world.y)
+	return Vector2i(temp[0],temp[1])
+	
+func g2w_vec(vector_grid):
+	var temp=g2w(vector_grid.x,vector_grid.y)
+	return Vector2i(temp[0],temp[1])
+	
+
 func generate_pg(_race=null,_class=null):
 	var rng = RandomNumberGenerator.new()
 	var _DB=DB.data

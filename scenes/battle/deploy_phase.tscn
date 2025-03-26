@@ -1,10 +1,10 @@
 [gd_scene load_steps=16 format=3 uid="uid://c5jdsdlt1palp"]
 
-[ext_resource type="Texture2D" uid="uid://d2qy2pvrqkdrr" path="res://assets/ui/panel.png" id="2_ck4hb"]
+[ext_resource type="Texture2D" uid="uid://dcs81ch366ct8" path="res://assets/ui/panel.png" id="2_ck4hb"]
 [ext_resource type="Texture2D" uid="uid://8vt7rvr5qkt7" path="res://assets/ui/battle_ui/InspectTilePanel.png" id="2_ynkis"]
-[ext_resource type="Texture2D" uid="uid://bc8laoey0ox4g" path="res://assets/ui/no_button.png" id="3_ev7r0"]
-[ext_resource type="Texture2D" uid="uid://rchgh5lar7r3" path="res://assets/ui/yes_button.png" id="4_hu6vv"]
-[ext_resource type="FontFile" uid="uid://b1o7xt3shnr8v" path="res://assets/ui/font.ttf" id="5_wrljb"]
+[ext_resource type="Texture2D" uid="uid://ckxrl8pcml1u8" path="res://assets/ui/no_button.png" id="3_ev7r0"]
+[ext_resource type="Texture2D" uid="uid://cqd60rwghh3uw" path="res://assets/ui/yes_button.png" id="4_hu6vv"]
+[ext_resource type="FontFile" uid="uid://borvkhd2htirr" path="res://assets/ui/font.ttf" id="5_wrljb"]
 
 [sub_resource type="GDScript" id="GDScript_515iq"]
 script/source = "extends Node
@@ -18,7 +18,7 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 
 
-func update_deploy_info(cursor_content):
+func update_deploy_info():
 	var deploy_info_ui = find_child(\"DeployHandler\", true, false)
 	deploy_info_ui.update_deploy_info()
 	update_deployable_datagrid()
@@ -113,6 +113,23 @@ func update_deploy_info():
 		
 #CONTROL HANDLER
 func _input(event):
+	#DEBUG CODE, EVENT TRIGGER
+	#DEBUG CODE, EVENT TRIGGER
+	#DEBUG CODE, EVENT TRIGGER
+	if event is InputEventKey and event.keycode==KEY_H:
+		var cursor = BN.get_battle_cursor()
+		GlobalAnimations.show_damage(cursor.cursor_position,10)
+	if event is InputEventKey and event.keycode==KEY_J:
+		var cursor = BN.get_battle_cursor()
+		GlobalAnimations.show_damage(cursor.cursor_position,-10)
+	if event is InputEventKey and event.keycode==KEY_K:
+		var cursor = BN.get_battle_cursor()
+		GlobalAnimations.show_damage(cursor.cursor_position,0)
+	#DEBUG CODE, EVENT TRIGGER
+	#DEBUG CODE, EVENT TRIGGER
+	#DEBUG CODE, EVENT TRIGGER
+	#DEBUG CODE, EVENT TRIGGER
+	
 	print(stringstate[current_state])
 	#print( party_deployable[deploy_index])
 	if event is InputEventKey and event.pressed:
@@ -168,9 +185,10 @@ func _input(event):
 				if party_deployable.size()==0:
 					current_state=STATE.BEGIN_ALERT
 			[STATE.DEPLOYING,KEY_X]:
-				undeploy_last()
+				await undeploy_last()
 				cursor.unlock()
-				update_deploy_info()
+				get_parent().update_deploy_info()
+				cursor.update_cursor_position()	
 			[STATE.DEPLOYING,KEY_UP]:
 				cursor.cursor_content['unit'].orient=Global.orient.NORTH
 				cursor.cursor_content['unit'].char2d.playy(\"walk\")
@@ -193,10 +211,8 @@ func undeploy_last():
 	for child in uc.get_children():
 		if child.get(\"id\")==last_deployed['el'].id: #PER ID!!!! UNSAFE
 			child.queue_free()
-			child=null
+			await child.tree_exited  # attende che il nodo esca effettivamente dalla scena
 			uc.remove(cursor.cursor_position)
-			BN.get_data_grid().build_grid_data()
-			cursor.update_cursor_position()
 			break
 						
 # Called every frame. 'delta' is the elapsed time since the previous frame.

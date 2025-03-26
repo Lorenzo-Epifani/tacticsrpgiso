@@ -53,7 +53,8 @@ func attaaack(attacker,target):
 	elif diff.y >0: orient = Global.orient.NORTH
 	elif diff.y < 0: orient = Global.orient.SOUTH
 	attacker.orient=orient
-	attacker.playy("attack")
+	#attacker.playy("attack")
+	$AttackLogic.attack_multi_exec(attacker,target)
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	pass
